@@ -144,7 +144,7 @@ static const KeyDef keys[] = {
     {KEY_NSPIRE_0, '0'}, {KEY_NSPIRE_1, '1'}, {KEY_NSPIRE_2, '2'},
     {KEY_NSPIRE_3, '3'}, {KEY_NSPIRE_4, '4'}, {KEY_NSPIRE_5, '5'},
     {KEY_NSPIRE_6, '6'}, {KEY_NSPIRE_7, '7'}, {KEY_NSPIRE_8, '8'},
-    {KEY_NSPIRE_9, '9'},
+    {KEY_NSPIRE_9, '9'}, {KEY_NSPIRE_DIVIDE, '/'},
     {KEY_NSPIRE_SPACE, ' '},
     {KEY_NSPIRE_DEL, '\b'},
     {KEY_NSPIRE_RET, '\n'}, {KEY_NSPIRE_ENTER, '\n'},
@@ -195,14 +195,19 @@ static void cmd_pwd(void) {
 
 static void cmd_cd(const char *arg) {
     char full[512];
+    NUC_DIR *dp;
+    
     if (!*arg)
+        print_line("cd: no such directory");
+    else if (*arg == '/'){
         snprintf(full, sizeof(full), "%s", root);
+    }
     else
         resolve_path(arg, full, sizeof(full));
-
-    if (chdir(full) == 0) {
-        if (!getcwd(cwd, sizeof(cwd)))   /* getcwd can fail; keep last good */
-            snprintf(cwd, sizeof(cwd), "%.*s", (int)sizeof(cwd) - 1, full);
+    dp = nuc_opendir(full);
+    if (dp) {
+        nuc_closedir(dp);
+        snprintf(cwd, sizeof(cwd), "%.*s", (int)sizeof(cwd) - 1, full);
     } else {
         print_line("cd: no such directory");
     }
@@ -336,7 +341,8 @@ int main(void) {
     while (1) {
         char c = wait_key();
         if (c == '\x1b') {
-            cmdlen = 0;                        /* ESC clears the line */
+            break;
+            /* ESC clears the line */
         } else if (c == '\b') {
             if (cmdlen > 0)
                 cmdlen--;
