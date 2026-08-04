@@ -1,0 +1,8 @@
+# Build artifacts (Ndless toolchain)
+*.o
+*.elf
+*.tns
+*.zehn
+
+# Editor
+.vscode/
