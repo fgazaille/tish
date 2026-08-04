@@ -13,15 +13,6 @@ $ pwd
 $ hello
 running hello
 ```
-
-## Why "option A"?
-
-The Nspire does **not** run Linux — it runs TI's proprietary OS, and Ndless
-`nl_exec()` can only run `.tns` homebrew programs, not arbitrary ELF binaries.
-So real `vim`, `ls`, `whoami`, etc. can't just be dropped on the calc. Instead,
-tish acts as the shell, and "apps" are real programs **recompiled for the Nspire**
-as `.tns` files (like the included `hello` sample). Type a name, and tish runs it.
-
 ## Built-in commands
 
 | Command      | Does                                          |
