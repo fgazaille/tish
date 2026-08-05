@@ -45,6 +45,10 @@ static int quitting = 0;
 static char cwd[300];        /* current directory (kept in sync via chdir/getcwd) */
 static char docs[300];       /* get_documents_dir() - where .tns live */
 
+static char hist[16][COLS]; /*history size*/
+static int hist_len = 0;
+static int browse = -1;
+
 /* copy a directory path into dst, dropping any trailing slash */
 static void path_norm_to(char *dst, int dsz, const char *src) {
     int l;
@@ -177,12 +181,13 @@ static const KeyDef keys[] = {
     {KEY_NSPIRE_P, 'p'}, {KEY_NSPIRE_Q, 'q'}, {KEY_NSPIRE_R, 'r'},
     {KEY_NSPIRE_S, 's'}, {KEY_NSPIRE_T, 't'}, {KEY_NSPIRE_U, 'u'},
     {KEY_NSPIRE_V, 'v'}, {KEY_NSPIRE_W, 'w'}, {KEY_NSPIRE_X, 'x'},
-    {KEY_NSPIRE_Y, 'y'}, {KEY_NSPIRE_Z, 'z'},
+    {KEY_NSPIRE_Y, 'y'}, {KEY_NSPIRE_Z, 'z'}, {KEY_NSPIRE_SPACE, ' '},
     {KEY_NSPIRE_0, '0'}, {KEY_NSPIRE_1, '1'}, {KEY_NSPIRE_2, '2'},
     {KEY_NSPIRE_3, '3'}, {KEY_NSPIRE_4, '4'}, {KEY_NSPIRE_5, '5'},
     {KEY_NSPIRE_6, '6'}, {KEY_NSPIRE_7, '7'}, {KEY_NSPIRE_8, '8'},
     {KEY_NSPIRE_9, '9'}, 
-    {KEY_NSPIRE_DIVIDE, '/'}, {KEY_NSPIRE_PERIOD, '.'}, {KEY_NSPIRE_SPACE, ' '},
+    {KEY_NSPIRE_PLUS, '\x10'}, {KEY_NSPIRE_MINUS, '\x11'}, //{KEY_NSPIRE_LEFT, '\x12'}, {KEY_NSPIRE_RIGHT, '\x13'}, EE is a test key
+    {KEY_NSPIRE_DIVIDE, '/'}, {KEY_NSPIRE_PERIOD, '.'},
     {KEY_NSPIRE_DEL, '\b'},
     {KEY_NSPIRE_RET, '\n'}, {KEY_NSPIRE_ENTER, '\n'},
     {KEY_NSPIRE_ESC, '\x1b'},
@@ -297,12 +302,22 @@ static void cmd_ls(const char *arg) {
     nuc_closedir(dp);
 }
 
+static void cmd_hist(void) {
+        char line[COLS];
+        int i;
+        for (i = 0; i < hist_len; i++) {
+            snprintf(line, COLS, "%d: %s", i, hist[i]);
+            print_line(line);
+        }
+        snprintf(line, COLS, "len=%d browse=%d", hist_len, browse);
+        print_line(line);
+}
+
 static void cmd_help(void) {
     print_line("builtins:");
     print_line("  cd <dir>   change directory");
     print_line("  pwd        print working directory");
     print_line("  ls <path>  list directory");
-    print_line("  whoami     who you are");
     print_line("  clear      clear screen");
     print_line("  help       this list");
     print_line("  exit       quit tish");
@@ -376,6 +391,8 @@ static void run_command(const char *line) {
         cmd_pwd();
     } else if (strcmp(cmd, "cd") == 0) {
         cmd_cd(arg);
+    } else if (strcmp(cmd, "hist") == 0) {
+        cmd_hist();
     } else if (strcmp(cmd, "ls") == 0) {
         cmd_ls(arg);
     } else if (strcmp(cmd, "whoami") == 0) {
@@ -401,10 +418,32 @@ int main(void) {
         } else if (c == '\b') {
             if (cmdlen > 0)
                 cmdlen--;
+            browse = -1;
+        } else if (c == '\x10'){ //up through history
+            if (browse < hist_len-1){
+                browse++;
+                snprintf(cmdline, COLS, "%s", hist[browse]);
+                cmdlen = strlen(cmdline);
+            }
+        } else if(c == '\x11'){ //down through history
+            if (browse > 0){
+                browse--;
+                snprintf(cmdline, COLS, "%s", hist[browse]);
+                cmdlen = strlen(cmdline);
+            }else if (browse == 0){
+                browse--;
+                cmdline[0] = '\0';
+                cmdlen = 0;
+            }
         } else if (c == '\n') {
             cmdline[cmdlen] = '\0';
-            if (cmdlen > 0)
-                print_line(cmdline);           /* echo the command */
+            if (cmdlen > 0){
+                print_line(cmdline);
+                memmove(&hist[1][0], &hist[0][0], 15 * COLS);
+                snprintf(hist[0] , COLS, "%s", cmdline);
+                if (hist_len < 16) {hist_len++;}
+            }
+            browse = -1;
             run_command(cmdline);
             if (quitting)
                 break;
@@ -412,6 +451,7 @@ int main(void) {
         } else if (c) {
             if (cmdlen < COLS - 3)
                 cmdline[cmdlen++] = c;
+            browse = -1;
         }
 
         build_screen();
