@@ -38,6 +38,7 @@ static int  n_lines = 0;     /* total lines printed (can exceed SCROLL) */
 
 static char cmdline[COLS];
 static int  cmdlen = 0;
+static int  cursor = 0;    /* caret position in cmdline, 0..cmdlen */
 
 static int force_full_redraw = 1;
 static int quitting = 0;
@@ -159,9 +160,13 @@ static void build_screen(void) {
     for (i = 0; prompt[i] && x < COLS - 3; i++)
         line[x++] = prompt[i];
     line[x++] = ' ';
-    for (i = 0; i < cmdlen && x < COLS - 2; i++)
+    for (i = 0; i < cmdlen && x < COLS - 1; i++) {
+        if (i == cursor)
+            line[x++] = '|';                  /* cursor before the char */
         line[x++] = cmdline[i];
-    line[x++] = '_';                          /* cursor */
+    }
+    if (cursor >= cmdlen && x < COLS - 1)
+        line[x++] = '|';                      /* cursor at end of line */
     line[x] = '\0';
     set_row(ROWS - 2, line);
 
@@ -186,7 +191,8 @@ static const KeyDef keys[] = {
     {KEY_NSPIRE_3, '3'}, {KEY_NSPIRE_4, '4'}, {KEY_NSPIRE_5, '5'},
     {KEY_NSPIRE_6, '6'}, {KEY_NSPIRE_7, '7'}, {KEY_NSPIRE_8, '8'},
     {KEY_NSPIRE_9, '9'}, 
-    {KEY_NSPIRE_PLUS, '\x10'}, {KEY_NSPIRE_MINUS, '\x11'}, //{KEY_NSPIRE_LEFT, '\x12'}, {KEY_NSPIRE_RIGHT, '\x13'}, EE is a test key
+    {KEY_NSPIRE_PLUS, '\x10'}, {KEY_NSPIRE_MINUS, '\x11'}, {KEY_NSPIRE_LEFT, '\x12'}, {KEY_NSPIRE_RIGHT, '\x13'},
+    {KEY_NSPIRE_eEXP, '\x12'}, {KEY_NSPIRE_TENX, '\x13'},
     {KEY_NSPIRE_DIVIDE, '/'}, {KEY_NSPIRE_PERIOD, '.'},
     {KEY_NSPIRE_DEL, '\b'},
     {KEY_NSPIRE_RET, '\n'}, {KEY_NSPIRE_ENTER, '\n'},
@@ -303,10 +309,10 @@ static void cmd_ls(const char *arg) {
 }
 
 static void cmd_hist(void) {
-        char line[COLS];
+        char line[COLS + 16];   /* "%d: " prefix + longest entry */
         int i;
         for (i = 0; i < hist_len; i++) {
-            snprintf(line, COLS, "%d: %s", i, hist[i]);
+            snprintf(line, sizeof(line), "%d: %.*s", i, COLS - 1, hist[i]);
             print_line(line);
         }
         snprintf(line, COLS, "len=%d browse=%d", hist_len, browse);
@@ -416,25 +422,35 @@ int main(void) {
             break;
             /* ESC clears the line */
         } else if (c == '\b') {
-            if (cmdlen > 0)
+            if (cursor > 0) {
+                memmove(&cmdline[cursor-1], &cmdline[cursor], cmdlen - cursor);
+                cursor--;
                 cmdlen--;
+            }
             browse = -1;
         } else if (c == '\x10'){ //up through history
             if (browse < hist_len-1){
                 browse++;
                 snprintf(cmdline, COLS, "%s", hist[browse]);
                 cmdlen = strlen(cmdline);
+                cursor = cmdlen;
             }
         } else if(c == '\x11'){ //down through history
             if (browse > 0){
                 browse--;
                 snprintf(cmdline, COLS, "%s", hist[browse]);
                 cmdlen = strlen(cmdline);
-            }else if (browse == 0){
+                cursor = cmdlen;
+            } else if (browse == 0){
                 browse--;
                 cmdline[0] = '\0';
                 cmdlen = 0;
+                cursor = 0;
             }
+        } else if (c == '\x12') { //left through text
+            if (cursor > 0){cursor--;}
+        } else if (c == '\x13') { //right through text
+            if (cursor < cmdlen){cursor++;}
         } else if (c == '\n') {
             cmdline[cmdlen] = '\0';
             if (cmdlen > 0){
@@ -448,9 +464,15 @@ int main(void) {
             if (quitting)
                 break;
             cmdlen = 0;
+            cursor = 0;
         } else if (c) {
-            if (cmdlen < COLS - 3)
-                cmdline[cmdlen++] = c;
+            if (cmdlen < COLS - 3) {
+                if (cursor < cmdlen)
+                    memmove(&cmdline[cursor+1], &cmdline[cursor], cmdlen - cursor);
+                cmdline[cursor] = c;
+                cursor++;
+                cmdlen++;
+            }
             browse = -1;
         }
 
