@@ -50,3 +50,65 @@ char wait_key(void) {
             return c;
     }
 }
+
+int handleinput(void){// returns 0: no action needed, 1: quit.
+    char c = wait_key();
+    if (c == '\x1b') {
+        return 1;
+        /* ESC quits */
+    } else if (c == '\b') {
+        if (cursor > 0) {
+            memmove(&cmdline[cursor-1], &cmdline[cursor], cmdlen - cursor);
+            cursor--;
+            cmdlen--;
+        }
+        browse = -1;
+    } else if (c == '\x10'){ //up through history
+        if (browse < hist_len-1){
+            browse++;
+            snprintf(cmdline, COLS, "%s", hist[browse]);
+            cmdlen = strlen(cmdline);
+            cursor = cmdlen;
+        }
+    } else if(c == '\x11'){ //down through history
+        if (browse > 0){
+            browse--;
+            snprintf(cmdline, COLS, "%s", hist[browse]);
+            cmdlen = strlen(cmdline);
+            cursor = cmdlen;
+        } else if (browse == 0){
+            browse--;
+            cmdline[0] = '\0';
+            cmdlen = 0;
+            cursor = 0;
+        }
+    } else if (c == '\x12') { //left through text
+        if (cursor > 0){cursor--;}
+    } else if (c == '\x13') { //right through text
+        if (cursor < cmdlen){cursor++;}
+    } else if (c == '\n') {
+        cmdline[cmdlen] = '\0';
+        if (cmdlen > 0){
+            print_line(cmdline);
+            memmove(&hist[1][0], &hist[0][0], 15 * COLS);
+            snprintf(hist[0] , COLS, "%s", cmdline);
+            if (hist_len < 16) {hist_len++;}
+        }
+        browse = -1;
+        run_command(cmdline);
+        if (quitting)
+            return 1;
+        cmdlen = 0;
+        cursor = 0;
+    } else if (c) {
+        if (cmdlen < COLS - 3) {
+            if (cursor < cmdlen)
+                memmove(&cmdline[cursor+1], &cmdline[cursor], cmdlen - cursor);
+            cmdline[cursor] = c;
+            cursor++;
+            cmdlen++;
+        }
+        browse = -1;
+    }
+    return 0;
+}
