@@ -6,7 +6,7 @@ GXX = nspire-g++
 LD  = nspire-ld
 GENZEHN = genzehn
 
-GCCFLAGS = -Wall -W -marm
+GCCFLAGS = -Wall -W -marm -Iinclude
 LDFLAGS = -Wl,--nspireio
 ZEHNFLAGS = --name "tish"
 
@@ -16,9 +16,7 @@ else
 	GCCFLAGS += -O0 -g
 endif
 
-OBJS = $(patsubst %.c, %.o, $(wildcard *.c))
-OBJS += $(patsubst %.cpp, %.o, $(wildcard *.cpp))
-OBJS += $(patsubst %.S, %.o, $(wildcard *.S))
+OBJS = src/tish.o
 EXE = tish
 DISTDIR = .
 vpath %.tns $(DISTDIR)

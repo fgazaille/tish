@@ -13,6 +13,7 @@ $ pwd
 $ hello
 running hello
 ```
+
 ## Built-in commands
 
 | Command      | Does                                          |
@@ -22,6 +23,7 @@ running hello
 | `ls [path]`  | list directory (directories marked with `/`)  |
 | `whoami`     | print the user id                             |
 | `clear`      | clear the scrollback                          |
+| `hist`        | show the command history                      |
 | `help`       | list the built-ins                            |
 | `exit`       | quit tish                                     |
 
@@ -47,7 +49,7 @@ cd apps/hello && make     # produces the hello sample
 ```
 
 Build and output always land in the project folder. The Makefile compiles the
-top-level `.c`/`.cpp`/`.S` files only (nested app projects build on their own).
+top-level sources only (nested app projects build on their own).
 
 ## Running on the emulator / calculator
 
@@ -62,12 +64,18 @@ with the on-screen keypad instead.
 
 ## Structure
 
-- `tish.c` — the whole shell: input loop, scrollback, render, builtins,
-  `find_program()` + `launch()`.
-- `Makefile` — Ndless build.
+- `include/tish.h` — shared state: screen/scrollback buffers, command line,
+  history (`hist`), cwd/docs paths, flags.
+- `src/tish.c` — main loop: key dispatch, history browsing, line editing.
+- `src/fs.c` — init, path normalization, `cd` target resolution, `path_to_abs`.
+- `src/render.c` — scrollback, incremental render, screen layout.
+- `src/input.c` — key -> char mapping (`read_key`/`wait_key`).
+- `src/cmd.c` — builtins, `find_program()` + `launch()`.
 - `apps/hello/` — a tiny `.tns` program used to test the launch pipeline.
+
+`tish.c` includes the others, so there is a single build unit.
 
 ## Layout
 
 30 rows × 53 cols (matches the Nspire console). Rows 0–27 are the scrollback
-window, row 28 is the prompt, row 29 is the status bar.
+window (last 40 lines written), row 28 is the prompt + command line, row 29 is the status bar.
