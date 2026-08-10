@@ -38,11 +38,11 @@
 int main(void) {
     init_fs();
     while (1) {
-        if (handleinput()) break;
-
         build_screen();
         render();
         wait_no_key_pressed();                 /* debounce: one key = one step */
+        if (handleinput()) break;
+
     }
     wait_key_pressed();
     return 0;
