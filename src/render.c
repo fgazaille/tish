@@ -59,18 +59,22 @@ void build_screen(void) {
 
     build_prompt(prompt, sizeof(prompt));
     x = 0;
-    line[x++] = '$';
-    line[x++] = ' ';
+
     for (i = 0; prompt[i] && x < COLS - 3; i++)
         line[x++] = prompt[i];
+
+    line[x++] = '$';
     line[x++] = ' ';
+
     for (i = 0; i < cmdlen && x < COLS - 1; i++) {
         if (i == cursor)
             line[x++] = '|';                  /* cursor before the char */
         line[x++] = cmdline[i];
     }
+
     if (cursor >= cmdlen && x < COLS - 1)
         line[x++] = '|';                      /* cursor at end of line */
+
     line[x] = '\0';
     set_row(ROWS - 2, line);
 
