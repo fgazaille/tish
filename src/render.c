@@ -44,7 +44,8 @@ void full_redraw(void) {
 
 /* rows 0..27 = scrollback window, row 28 = prompt, row 29 = status bar */
 static void build_prompt(char *out, int out_size) {
-    snprintf(out, out_size, "%.*s", out_size - 1, cwd);   /* show cwd, e.g. "/" */
+    //snprintf(out, out_size, "%.*s", out_size - 1, cwd);   // show cwd, e.g. "/"
+    snprintf(out, out_size, "user@tinspire:%.*s$ ", out_size - 17, cwd);
 }
 
 void build_screen(void) {
@@ -60,11 +61,9 @@ void build_screen(void) {
     build_prompt(prompt, sizeof(prompt));
     x = 0;
 
+
     for (i = 0; prompt[i] && x < COLS - 3; i++)
         line[x++] = prompt[i];
-
-    line[x++] = '$';
-    line[x++] = ' ';
 
     for (i = 0; i < cmdlen && x < COLS - 1; i++) {
         if (i == cursor)
