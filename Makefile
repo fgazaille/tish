@@ -25,8 +25,7 @@ vpath %.elf $(DISTDIR)
 all: $(EXE).tns
 
 %.o: %.c
-	$(GCC) $(GCCFLAGS) -c $< -o $@
-
+	$(GXX) $(GCCFLAGS) -c $< -o $@
 %.o: %.cpp
 	$(GXX) $(GCCFLAGS) -c $< -o $@
 

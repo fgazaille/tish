@@ -1,5 +1,3 @@
-
-/* ---------------- builtins ---------------- */
 /* ---------------- program launch ---------------- */
 
 /* look for "<name>.tns" in the current dir, then the documents root. */
@@ -37,15 +35,17 @@ static void launch(const char *path, const char *name) {
     full_redraw();
 }
 
-static void cmd_pwd(void) {
+static void cmd_pwd(int argc, char* argv[]) {
+    argc++;argv++;// to bypass the annoying unused parameter warnings
     print_line(cwd);
 }
 
-static void cmd_cd(const char *arg) {
+static void cmd_cd(int argc, char* argv[]) {
+    argc++;// to bypass the annoying unused parameter warnings
     char buf[512];
     char tmp[300];
     NUC_DIR *probe;
-    const char *target = build_target(arg, buf, sizeof(buf));
+    const char *target = build_target(argv[1], buf, sizeof(buf));
 
     if (chdir(target) != 0) {
         print_line("cd: no such directory");
@@ -63,19 +63,30 @@ static void cmd_cd(const char *arg) {
     path_norm_to(cwd, sizeof(cwd), tmp);
 }
 
-static void cmd_ls(const char *arg) {
+static void cmd_ls(int argc, char* argv[]) {
     char dir[512];
     NUC_DIR *dp;
     struct nuc_dirent *ep;
     struct nuc_stat st;
+    static const char* ls_help = R"(List directory contents.
+Ignore files and directories starting with a '.' by default
 
-    if (*arg) {
-        if (!path_to_abs(arg, dir, sizeof(dir))) {
-            print_line("ls: cannot open");
-            return;
+Usage: ls [OPTION]... [FILE]...
+
+Arguments:
+  [paths]...
+
+Options:
+      --help                                     Print help information.
+)";
+
+    if (argc > 1) {
+        if (!path_to_abs(argv[1], dir, sizeof(dir))) {
         }
-    } else {
+    } else if (argc == 1){
         snprintf(dir, sizeof(dir), "%s", cwd);
+    } else { // too many arguments
+        print_line(ls_help);
     }
 
     dp = nuc_opendir(dir);
@@ -101,18 +112,20 @@ static void cmd_ls(const char *arg) {
     nuc_closedir(dp);
 }
 
-static void cmd_hist(void) {
-        char line[COLS + 16];   /* "%d: " prefix + longest entry */
-        int i;
-        for (i = 0; i < hist_len; i++) {
-            snprintf(line, sizeof(line), "%d: %.*s", i, COLS - 1, hist[i]);
-            print_line(line);
-        }
-        snprintf(line, COLS, "len=%d browse=%d", hist_len, browse);
+static void cmd_hist(int argc, char* argv[]) {
+    argc++;argv++;// to bypass the annoying unused parameter warnings
+    char line[COLS + 16];   /* "%d: " prefix + longest entry */
+    int i;
+    for (i = 0; i < hist_len; i++) {
+        snprintf(line, sizeof(line), "%d: %.*s", i, COLS - 1, hist[i]);
         print_line(line);
+    }
+    snprintf(line, COLS, "len=%d browse=%d", hist_len, browse);
+    print_line(line);
 }
 
-static void cmd_help(void) {
+static void cmd_help(int argc, char* argv[]) {
+    argc++;argv++;// to bypass the annoying unused parameter warnings
     print_line("builtins:");
     print_line("  cd <dir>   change directory");
     print_line("  pwd        print working directory");
@@ -123,48 +136,81 @@ static void cmd_help(void) {
     print_line("anything else tries to run <name>.tns");
 }
 
-
 /* ---------------- command dispatch ---------------- */
 
 void run_command(const char *line) {
     char buf[64];
-    char *cmd;
-    char *arg = "";
+    int argc = 0;
+    char **argv = new char*[64];
+    for (int i = 0; i < 64; i++){
+        argv[i] = new char[64];
+    }
+    char* token;
 
     snprintf(buf, sizeof(buf), "%s", line);
-    cmd = strtok(buf, " ");                    /* first token = command */
-    arg = strtok(NULL, "");                    /* the rest = arguments, may be NULL */
-    if (arg == NULL)
-        arg = "";
-    while (*arg == ' ')
-        arg++;
+    token = strtok(buf, " ");
 
-    if (!cmd || !*cmd)
+    if (token == NULL)
+        return;
+
+    strcpy(argv[argc], token);
+    argc++;
+
+    while (argc < 64) {
+        token = strtok(NULL, " ");
+
+        if (token == NULL)
+            break;
+
+        strcpy(argv[argc], token);
+        argc++;
+    }
+
+    if (!argc)
+
         return;                                /* empty line */
 
-    if (strcmp(cmd, "help") == 0) {
-        cmd_help();
-    } else if (strcmp(cmd, "clear") == 0) {
+    if (strcmp(argv[0], "help") == 0) {
+
+        cmd_help(argc, argv);
+
+    } else if (strcmp(argv[0], "clear") == 0) {
+
         n_lines = 0;
         full_redraw();
-    } else if (strcmp(cmd, "exit") == 0) {
+
+    } else if (strcmp(argv[0], "exit") == 0) {
+
         /* tell main() to quit */
         quitting = 1;
-    } else if (strcmp(cmd, "pwd") == 0) {
-        cmd_pwd();
-    } else if (strcmp(cmd, "cd") == 0) {
-        cmd_cd(arg);
-    } else if (strcmp(cmd, "hist") == 0) {
-        cmd_hist();
-    } else if (strcmp(cmd, "ls") == 0) {
-        cmd_ls(arg);
-    } else if (strcmp(cmd, "whoami") == 0) {
+
+    } else if (strcmp(argv[0], "pwd") == 0) {
+
+        cmd_pwd(argc, argv);
+
+    } else if (strcmp(argv[0], "cd") == 0) {
+
+        cmd_cd(argc, argv);
+
+    } else if (strcmp(argv[0], "hist") == 0) {
+
+        cmd_hist(argc, argv);
+
+    } else if (strcmp(argv[0], "ls") == 0) {
+
+        cmd_ls(argc, argv);
+
+    } else if (strcmp(argv[0], "whoami") == 0) {
+
         print_line("root");
+
     } else {
         char path[512];
-        if (find_program(cmd, path, sizeof(path)))
-            launch(path, cmd);
-        else
+        if (find_program(argv[0], path, sizeof(path)))
+            launch(path, argv[0]);
+        else{
+            print_line(argv[0]);
             print_line("<name>: not found");
+        }
     }
 }

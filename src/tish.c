@@ -30,7 +30,7 @@
 
 #include "fs.c"
 #include "render.c"
-#include "cmd.c"
+#include "cmd.cpp"
 #include "input.c"
 
 /* ---------------- main loop ---------------- */
