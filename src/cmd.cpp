@@ -209,8 +209,7 @@ void run_command(const char *line) {
         if (find_program(argv[0], path, sizeof(path)))
             launch(path, argv[0]);
         else{
-            print_line(argv[0]);
-            print_line("<name>: not found");
+            print_line(strcat(argv[0],": not found"));
         }
     }
 }
