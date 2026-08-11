@@ -42,10 +42,9 @@ static void cmd_pwd(int argc, char* argv[]) {
 
 static void cmd_cd(int argc, char* argv[]) {
     argc++;// to bypass the annoying unused parameter warnings
-    char buf[512];
     char tmp[300];
     NUC_DIR *probe;
-    const char *target = build_target(argv[1], buf, sizeof(buf));
+    const char *target = build_target(argv[1]);
 
     if (chdir(target) != 0) {
         print_line("cd: no such directory");

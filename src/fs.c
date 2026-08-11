@@ -9,23 +9,11 @@ static void path_norm_to(char *dst, int dsz, const char *src) {
         dst[--l] = '\0';
 }
 
-/* Build the path to hand to chdir().  The user sees "/" as the "documents
- * root", but the OS's own absolute "/" is a different, un-listable namespace
- * (opendir("/") fails).  So an absolute path like "/ndless" is interpreted
- * relative to the documents root -> "/documents/ndless".  Returns a pointer
+/* Build the path to hand to chdir(). Returns a pointer
  * into `arg`, `docs`, or the local `buf` the caller passes in. */
-static const char *build_target(const char *arg, char *buf, int buf_size) {
-    size_t dl;
+static const char *build_target(const char *arg) {
     if (!*arg)
         return docs;
-    if (arg[0] == '/') {
-        dl = strlen(docs);
-        if (strncmp(arg, docs, dl) == 0 &&
-            (arg[dl] == '\0' || arg[dl] == '/'))
-            return arg;                    /* already a full documents path */
-        snprintf(buf, buf_size, "%s%s", docs, arg);
-        return buf;
-    }
     return arg;                            /* relative - chdir() resolves it */
 }
 
@@ -52,8 +40,7 @@ void init_fs(void) {
  * letting the OS do it for us: chdir() there, read getcwd(), chdir back.
  * Returns 1 if the path exists, 0 otherwise.  "out" is untouched on failure. */
 static int path_to_abs(const char *in, char *out, int out_size) {
-    char buf[512];
-    const char *target = build_target(in, buf, sizeof(buf));
+    const char *target = build_target(in);
     if (chdir(target) == 0) {
         if (!getcwd(out, out_size))
             snprintf(out, out_size, "%s", cwd);
