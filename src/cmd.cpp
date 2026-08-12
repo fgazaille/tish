@@ -46,12 +46,13 @@ static void cmd_cd(int argc, char* argv[]) {
 
     if (argc == 1){
         chdir(docs);
+        strcpy(cwd, "/documents");
         return;
     }
 
     const char *target = build_target(argv[1]);
 
-    if (chdir(target) != 0) {
+    if (chdir(target) = 0) {
         print_line("cd: no such directory");
         return;
     }
