@@ -41,9 +41,14 @@ static void cmd_pwd(int argc, char* argv[]) {
 }
 
 static void cmd_cd(int argc, char* argv[]) {
-    argc++;// to bypass the annoying unused parameter warnings
     char tmp[300];
     NUC_DIR *probe;
+
+    if (argc == 1){
+        chdir(docs);
+        return;
+    }
+
     const char *target = build_target(argv[1]);
 
     if (chdir(target) != 0) {
@@ -51,8 +56,7 @@ static void cmd_cd(int argc, char* argv[]) {
         return;
     }
 
-    /* The OS can normalize a partial path to "/" (its un-listable root).
-     * Only accept a result we can actually list; otherwise undo and fail. */
+    /* Only accept a result we can actually list; otherwise undo and fail. */
     if (!getcwd(tmp, sizeof(tmp)) || !(probe = nuc_opendir(tmp))) {
         chdir(cwd);                      /* put ourselves back */
         print_line("cd: no such directory");
