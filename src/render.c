@@ -55,7 +55,8 @@ void build_screen(void) {
 
     for (y = 0; y < ROWS - 2; y++) {
         int idx = n_lines - (ROWS - 2) + y;   /* last ROWS-2 lines */
-        set_row(y, (idx >= 0 && idx < n_lines) ? scrollback[idx] : "");
+        //set_row(y, (idx >= 0 && idx < n_lines) ? scrollback[idx] : "");
+        set_row(y, (idx >= 0 && idx < n_lines) ? scrollback[idx % SCROLL] : "");
     }
 
     build_prompt(prompt, sizeof(prompt));

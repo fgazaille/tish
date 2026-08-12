@@ -81,6 +81,8 @@ Options:
 
     if (argc > 1) { // has arguments
         if (!path_to_abs(argv[1], dir, sizeof(dir))) {
+            print_line("ls: cannot open");
+            return;
         }
     } else if (argc == 1){
         snprintf(dir, sizeof(dir), "%s", cwd);
