@@ -1,7 +1,7 @@
 
 
 /* copy a directory path into dst, dropping any trailing slash */
-static void path_norm_to(char *dst, int dsz, const char *src) {
+static void normalize_path(char *dst, int dsz, const char *src) {
     int l;
     snprintf(dst, dsz, "%s", src);
     l = strlen(dst);
@@ -24,10 +24,10 @@ static const char *build_target(const char *arg) {
 void init_fs(void) {
     const char *d = get_documents_dir();
     NUC_DIR *probe;
-    path_norm_to(docs, sizeof(docs), d ? d : "/");
+    normalize_path(docs, sizeof(docs), d ? d : "/");
     if (getcwd(cwd, sizeof(cwd)) && (probe = nuc_opendir(cwd))) {
         nuc_closedir(probe);
-        path_norm_to(cwd, sizeof(cwd), cwd);
+        normalize_path(cwd, sizeof(cwd), cwd);
     } else {
         snprintf(cwd, sizeof(cwd), "%s", docs);
     }

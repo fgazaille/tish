@@ -59,7 +59,7 @@ static void cmd_cd(int argc, char* argv[]) {
         return;
     }
     nuc_closedir(probe);
-    path_norm_to(cwd, sizeof(cwd), tmp);
+    normalize_path(cwd, sizeof(cwd), tmp);
 }
 
 static void cmd_ls(int argc, char* argv[]) {
@@ -79,7 +79,7 @@ Options:
       --help                                     Print help information.
 )";
 
-    if (argc > 1) {
+    if (argc > 1) { // has arguments
         if (!path_to_abs(argv[1], dir, sizeof(dir))) {
         }
     } else if (argc == 1){
