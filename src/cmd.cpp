@@ -52,7 +52,7 @@ static void cmd_cd(int argc, char* argv[]) {
 
     const char *target = build_target(argv[1]);
 
-    if (chdir(target) = 0) {
+    if (chdir(target) == 0) {
         print_line("cd: no such directory");
         return;
     }
@@ -60,7 +60,7 @@ static void cmd_cd(int argc, char* argv[]) {
     /* Only accept a result we can actually list; otherwise undo and fail. */
     if (!getcwd(tmp, sizeof(tmp)) || !(probe = nuc_opendir(tmp))) {
         chdir(cwd);                      /* put ourselves back */
-        print_line("cd: no such directory");
+        print_line("cd: not a directory");
         return;
     }
     nuc_closedir(probe);
@@ -84,7 +84,7 @@ Options:
       --help                                     Print help information.
 )";
 
-    if (argc > 1) { // has arguments
+    if (argc == 2) { // has arguments
         if (!path_to_abs(argv[1], dir, sizeof(dir))) {
             print_line("ls: cannot open");
             return;
@@ -217,6 +217,9 @@ void run_command(const char *line) {
         else{
             print_line(strcat(argv[0],": not found"));
         }
+    }
+    for (int i = 0; i < 64; i++){
+        delete[] argv[i];
     }
     delete[] argv;
 }
