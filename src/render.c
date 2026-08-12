@@ -63,7 +63,7 @@ void build_screen(void) {
     x = 0;
 
 
-    for (i = 0; prompt[i] && x < COLS - 3; i++)
+    for (i = 0; prompt[i] && x < COLS - 4; i++)
         line[x++] = prompt[i];
 
     for (i = 0; i < cmdlen && x < COLS - 1; i++) {
