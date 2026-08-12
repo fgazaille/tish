@@ -172,14 +172,15 @@ void run_command(const char *line) {
         argc++;
     }
 
-    if (!argc)
-    
+    if (!argc){
+
         for (int i = 0; i < 64; i++){
             delete[] argv[i];
         }
         delete[] argv;
 
-        return;                                /* empty line */
+        return;
+    }                             /* empty line */
 
     if (strcmp(argv[0], "help") == 0) {
 
