@@ -46,6 +46,7 @@ static void cmd_cd(int argc, char* argv[]) {
 
     if (argc == 1){
         chdir(docs);
+        strcpy(cwd, "/documents");
         return;
     }
 
