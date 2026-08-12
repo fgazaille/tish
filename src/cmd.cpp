@@ -73,8 +73,6 @@ static void cmd_ls(int argc, char* argv[]) {
     struct nuc_dirent *ep;
     struct nuc_stat st;
     static const char* ls_help = R"(List directory contents.
-Ignore files and directories starting with a '.' by default
-
 Usage: ls [OPTION]... [FILE]...
 
 Arguments:
