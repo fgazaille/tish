@@ -211,4 +211,5 @@ void run_command(const char *line) {
             print_line(strcat(argv[0],": not found"));
         }
     }
+    delete[] argv;
 }
