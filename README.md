@@ -10,7 +10,7 @@ $ ls
 MyLib/    hello.tns    ntop.tns
 $ pwd
 /documents
-$ hello
+$ ./hello
 running hello
 ```
 
@@ -27,8 +27,9 @@ running hello
 | `help`       | list the built-ins                            |
 | `exit`       | quit tish                                     |
 
-Anything else is treated as a program name: tish looks for `<name>.tns` in the
-current directory and the documents root, and launches it with `nl_exec()`.
+Anything else must be prefixed with `./` to run a program: tish looks for
+`<name>.tns` in the current directory and the documents root, and launches it
+with `nl_exec()`.
 
 ## Filesystem
 
@@ -56,7 +57,7 @@ top-level sources only (nested app projects build on their own).
 1. Copy `tish.tns` to the calculator's documents folder and run it as a normal
    `.tns` program (drag it onto Firebird to test).
 2. To try launching, install another program alongside it (e.g. `hello.tns`,
-   `ntop.tns`, `TexEdit.tns`) and type its name.
+   `ntop.tns`, `TexEdit.tns`) and type `./<name>`.
 3. Exit tish with `exit` (or esc).
 
 Note: the touchpad arrow keys are not readable on the Firebird emulator; type

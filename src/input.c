@@ -19,7 +19,7 @@ static const KeyDef keys[] = {
     {KEY_NSPIRE_9, '9'},
     {KEY_NSPIRE_PLUS, '\x10'}, {KEY_NSPIRE_MINUS, '\x11'}, {KEY_NSPIRE_eEXP, '\x12'}, {KEY_NSPIRE_TENX, '\x13'},
     {KEY_NSPIRE_UP, '\x10'}, {KEY_NSPIRE_DOWN, '\x11'}, {KEY_NSPIRE_LEFT, '\x12'}, {KEY_NSPIRE_RIGHT, '\x13'},
-    {KEY_NSPIRE_DIVIDE, '/'}, {KEY_NSPIRE_PERIOD, '.'},
+    {KEY_NSPIRE_DIVIDE, '/'}, {KEY_NSPIRE_PERIOD, '.'}, {KEY_NSPIRE_NEGATIVE, '-'},
     {KEY_NSPIRE_DEL, '\b'},
     {KEY_NSPIRE_RET, '\n'}, {KEY_NSPIRE_ENTER, '\n'},
     {KEY_NSPIRE_ESC, '\x1b'},

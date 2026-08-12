@@ -135,9 +135,11 @@ static void cmd_help(int argc, char* argv[]) {
     print_line("  pwd        print working directory");
     print_line("  ls <path>  list directory");
     print_line("  clear      clear screen");
+    print_line("  whoami     shows the current user");
+    print_line("  hist       show the last 16 commands");
     print_line("  help       this list");
     print_line("  exit       quit tish");
-    print_line("anything else tries to run <name>.tns");
+    print_line("./<name> runs a .tns program");
 }
 
 /* ---------------- command dispatch ---------------- */
@@ -216,10 +218,16 @@ void run_command(const char *line) {
 
     } else {
         char path[512];
-        if (find_program(argv[0], path, sizeof(path)))
-            launch(path, argv[0]);
-        else{
-            print_line(strcat(argv[0],": not found"));
+        char msg[COLS];
+        const char *name = argv[0];
+        int want_launch = (name[0] == '.' && name[1] == '/');
+        if (want_launch)
+            name += 2;                     /* "./hello" -> "hello" */
+        if (want_launch && find_program(name, path, sizeof(path)))
+            launch(path, name);
+        else {
+            snprintf(msg, sizeof(msg), "%s: not found", argv[0]);
+            print_line(msg);
         }
     }
     for (int i = 0; i < 64; i++){
