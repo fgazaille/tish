@@ -10,6 +10,14 @@ void print_line(const char *line) {
     n_lines++;
 }
 
+void print_multiline(char* text){
+    char *line;
+    line = strtok(text, "\n");
+    while (line != NULL){
+        print_line(line);
+        line = strtok(NULL, "\n");
+    }
+}
 /* ---------------- rendering (base plumbing) ---------------- */
 
 static void set_row(int y, const char *s) {

@@ -79,14 +79,15 @@ Arguments:
   [paths]...
 
 Options:
-      --help                                     Print help information.
+      --help              Print help information.
 )";
 
     if (argc == 2) { // has arguments
-        if (!path_to_abs(argv[1], dir, sizeof(dir))) {
-            print_line("ls: cannot open");
+        if (!strcmp(argv[1], (char*)"--help")){
+            print_multiline((char*)ls_help);
             return;
         }
+        snprintf(dir, sizeof(dir), "%s", argv[1]);
     } else if (argc == 1){
         snprintf(dir, sizeof(dir), "%s", cwd);
     } else { // too many arguments
@@ -95,7 +96,7 @@ Options:
 
     dp = nuc_opendir(dir);
     if (!dp) {
-        print_line("ls: cannot open");
+        print_line(strcat((char*)"ls: cannot open ", dir));
         return;
     }
     while ((ep = nuc_readdir(dp))) {
