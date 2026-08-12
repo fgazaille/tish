@@ -172,6 +172,11 @@ void run_command(const char *line) {
     }
 
     if (!argc)
+    
+        for (int i = 0; i < 64; i++){
+            delete[] argv[i];
+        }
+        delete[] argv;
 
         return;                                /* empty line */
 
