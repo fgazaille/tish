@@ -16,7 +16,7 @@ static int  cursor = 0;    /* caret position in cmdline, 0..cmdlen */
 static int force_full_redraw = 1;
 static int quitting = 0;
 
-static char cwd[300];        /* current directory (kept in sync via chdir/getcwd) */
+static char cwd[300];
 static char docs[300];       /* get_documents_dir() - where .tns live */
 
 static char hist[16][COLS]; /*history size*/

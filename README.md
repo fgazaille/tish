@@ -6,11 +6,11 @@ a small command prompt with a few built-ins and a way to launch other Ndless
 `.tns` programs by name.
 
 ```
-$ ls
+user@tinspire:/documents$ ls
 MyLib/    hello.tns    ntop.tns
-$ pwd
+user@tinspire:/documents$ pwd
 /documents
-$ ./hello
+user@tinspire:/documents$ ./hello
 running hello
 ```
 
@@ -33,10 +33,16 @@ with `nl_exec()`.
 
 ## Filesystem
 
-- The root is `get_documents_dir()` — the calculator's documents folder.
-- `cd`/`pwd`/`ls` track a working directory via `chdir()`/`getcwd()`.
-- The prompt shows the working directory relative to the documents root, e.g.
-  `$ ~` at the root or `$ ~/MyLib` after `cd MyLib`.
+- `/` is the real root of the calculator's file area (listable via the `nuc_*`
+  API); the documents folder lives at `/documents`.
+- The OS's `chdir()`/`getcwd()` are unreliable on this platform (they fail on
+  valid targets, succeed on invalid ones, and report wrong directories), so
+  `cd`/`pwd`/`ls` track the working directory **logically**: paths are
+  resolved by hand (relative, absolute, `.`/`..`), and a directory is accepted
+  only if `nuc_opendir()` can list it.
+- `cd` alone goes to the documents root.
+- The prompt shows the absolute working directory:
+  `user@tinspire:/documents/MyLib$ `.
 
 ## Building
 
@@ -68,10 +74,11 @@ with the on-screen keypad instead.
 - `include/tish.h` — shared state: screen/scrollback buffers, command line,
   history (`hist`), cwd/docs paths, flags.
 - `src/tish.c` — main loop: key dispatch, history browsing, line editing.
-- `src/fs.c` — init, path normalization, `cd` target resolution, `path_to_abs`.
+- `src/fs.c` — init, path normalization, logical path resolution
+  (`resolve_path`), cwd/docs tracking.
 - `src/render.c` — scrollback, incremental render, screen layout.
 - `src/input.c` — key -> char mapping (`read_key`/`wait_key`).
-- `src/cmd.c` — builtins, `find_program()` + `launch()`.
+- `src/cmd.cpp` — builtins, `find_program()` + `launch()`.
 - `apps/hello/` — a tiny `.tns` program used to test the launch pipeline.
 
 `tish.c` includes the others, so there is a single build unit.

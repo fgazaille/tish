@@ -41,30 +41,25 @@ static void cmd_pwd(int argc, char* argv[]) {
 }
 
 static void cmd_cd(int argc, char* argv[]) {
-    char tmp[300];
+    char target[300];
     NUC_DIR *probe;
 
-    if (argc == 1){
-        chdir(docs);
-        strcpy(cwd, "/documents");
+    if (argc == 1) {
+        snprintf(target, sizeof(target), "%s", docs);
+    } else if (argc > 2){
+        print_line("cd: too many arguments");
         return;
+    } else {
+        resolve_path(argv[1], target, sizeof(target));
     }
 
-    const char *target = build_target(argv[1]);
-
-    if (chdir(target) == 0) {
+    probe = nuc_opendir(target);
+    if (!probe) {
         print_line("cd: no such directory");
         return;
     }
-
-    /* Only accept a result we can actually list; otherwise undo and fail. */
-    if (!getcwd(tmp, sizeof(tmp)) || !(probe = nuc_opendir(tmp))) {
-        chdir(cwd);                      /* put ourselves back */
-        print_line("cd: not a directory");
-        return;
-    }
     nuc_closedir(probe);
-    normalize_path(cwd, sizeof(cwd), tmp);
+    normalize_path(cwd, sizeof(cwd), target);
 }
 
 static void cmd_ls(int argc, char* argv[]) {
@@ -87,16 +82,19 @@ Options:
             print_multiline((char*)ls_help);
             return;
         }
-        snprintf(dir, sizeof(dir), "%s", argv[1]);
+        resolve_path(argv[1], dir, sizeof(dir));
     } else if (argc == 1){
         snprintf(dir, sizeof(dir), "%s", cwd);
     } else { // too many arguments
-        print_line(ls_help);
+        print_multiline((char*)ls_help);
+        return;
     }
 
     dp = nuc_opendir(dir);
     if (!dp) {
-        print_line(strcat((char*)"ls: cannot open ", dir));
+        char msg[600];
+        snprintf(msg, sizeof(msg), "ls: cannot open %s", dir);
+        print_line(msg);
         return;
     }
     while ((ep = nuc_readdir(dp))) {
@@ -129,6 +127,34 @@ static void cmd_hist(int argc, char* argv[]) {
     print_line(line);
 }
 
+static void cmd_dbg(int argc, char* argv[]) {
+    argc++;argv++;
+    char t[300], line[700];
+    NUC_DIR *p;
+    const char *paths[] = {"/", "/ndless", docs, "/documents", "/documents/ndless"};
+    int i;
+
+    snprintf(line, sizeof(line), "docs=%s cwd=%s", docs, cwd);
+    print_line(line);
+
+    for (i = 0; i < 5; i++) {
+        p = nuc_opendir(paths[i]);
+        snprintf(line, sizeof(line), "opendir(%s)=%s", paths[i], p ? "OK" : "FAIL");
+        print_line(line);
+        if (p) nuc_closedir(p);
+    }
+
+    const char *tests[] = {"ndless", "..", "../", "/ndless", "/documents/ndless", "/"};
+    for (i = 0; i < 6; i++) {
+        resolve_path(tests[i], t, sizeof(t));
+        p = nuc_opendir(t);
+        snprintf(line, sizeof(line), "resolve(%s)=%s list=%s",
+                 tests[i], t, p ? "OK" : "FAIL");
+        print_line(line);
+        if (p) nuc_closedir(p);
+    }
+}
+
 static void cmd_help(int argc, char* argv[]) {
     argc++;argv++;// to bypass the annoying unused parameter warnings
     print_line("builtins:");
@@ -157,8 +183,12 @@ void run_command(const char *line) {
     snprintf(buf, sizeof(buf), "%s", line);
     token = strtok(buf, " ");
 
-    if (token == NULL)
+    if (token == NULL) {
+        for (int i = 0; i < 64; i++)
+            delete[] argv[i];
+        delete[] argv;
         return;
+    }
 
     strcpy(argv[argc], token);
     argc++;
@@ -172,16 +202,6 @@ void run_command(const char *line) {
         strcpy(argv[argc], token);
         argc++;
     }
-
-    if (!argc){
-
-        for (int i = 0; i < 64; i++){
-            delete[] argv[i];
-        }
-        delete[] argv;
-
-        return;
-    }                             /* empty line */
 
     if (strcmp(argv[0], "help") == 0) {
 
@@ -216,6 +236,10 @@ void run_command(const char *line) {
     } else if (strcmp(argv[0], "whoami") == 0) {
 
         print_line("root");
+
+    } else if (strcmp(argv[0], "dbg") == 0) {
+
+        cmd_dbg(argc, argv);
 
     } else {
         char path[512];

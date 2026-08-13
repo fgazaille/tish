@@ -9,43 +9,65 @@ static void normalize_path(char *dst, int dsz, const char *src) {
         dst[--l] = '\0';
 }
 
-/* Build the path to hand to chdir(). Returns a pointer
- * into `arg`, `docs`, or the local `buf` the caller passes in. */
-static const char *build_target(const char *arg) {
-    if (!*arg)
-        return docs;
-    return arg;                            /* relative - chdir() resolves it */
+/* Resolve a user-supplied path ("", ".", "..", relative, or absolute) to an
+ * absolute path in the nuc filesystem namespace (where "/" is the real root,
+ * listable on Firebird; the documents area lives at "/documents").
+ *
+ * The OS's chdir/getcwd are too unreliable to drive navigation (chdir returns
+ * failure for valid targets, succeeds for invalid ones, and getcwd reports
+ * the wrong directory), so we resolve paths ourselves and confirm them with
+ * nuc_opendir() alone.  "." / ".." components are collapsed by hand, with
+ * ".." never climbing above the real root. */
+static void resolve_path(const char *arg, char *out, int out_size) {
+    char tmp[300];
+    char *tok;
+    int depth = 0, outl;
+
+    if (arg[0] == '/') {
+        snprintf(tmp, sizeof(tmp), "%s", arg);   /* absolute: real root */
+    } else {                                     /*if arg is not from root*/
+        int cl = strlen(cwd), al = strlen(arg);
+        if (cl + 1 + al >= (int)sizeof(tmp))        /* keep cwd, truncate arg */
+            al = (int)sizeof(tmp) - cl - 2;
+        memcpy(tmp, cwd, cl);
+        tmp[cl] = '/';
+        memcpy(tmp + cl + 1, arg, al);
+        tmp[cl + 1 + al] = '\0';
+    }
+
+    out[0] = '\0';
+    for (tok = strtok(tmp, "/"); tok; tok = strtok(NULL, "/")) {
+        if (!strcmp(tok, ".") || !*tok)
+            continue;                            /* ignore "." and doubles */
+        if (!strcmp(tok, "..")) {
+            if (depth > 0) {
+                char *s = strrchr(out, '/');     /* pop last component */
+                if (s == out){
+                    out[1]= '\0';
+                } else if (s) {
+                    *s = '\0';
+                }
+                depth--;
+
+            }
+            continue;                            /* can't climb above "/" */
+        }
+        outl = strlen(out);
+        if (outl + (int)strlen(tok) + 2 > out_size)
+            break;
+        snprintf(out + outl, out_size - outl, "/%s", tok);
+        depth++;
+    }
+    if (!*out)
+        snprintf(out, out_size, "/");
 }
 
 /* ---------------- filesystem init ---------------- */
 
-/* Start in the OS's current directory for a launched program, but only if it
- * is a listable directory; otherwise use the documents root. */
+/* Start in the documents root: the OS's getcwd() is unreliable, so we don't
+ * trust it.  cwd is kept purely logical from here on (see resolve_path). */
 void init_fs(void) {
     const char *d = get_documents_dir();
-    NUC_DIR *probe;
     normalize_path(docs, sizeof(docs), d ? d : "/");
-    if (getcwd(cwd, sizeof(cwd)) && (probe = nuc_opendir(cwd))) {
-        nuc_closedir(probe);
-        normalize_path(cwd, sizeof(cwd), cwd);
-    } else {
-        snprintf(cwd, sizeof(cwd), "%s", docs);
-    }
-}
-
-
-/* ---------------- path helpers ---------------- */
-
-/* Resolve a user path (absolute, relative, ".", "..") to an absolute path by
- * letting the OS do it for us: chdir() there, read getcwd(), chdir back.
- * Returns 1 if the path exists, 0 otherwise.  "out" is untouched on failure. */
-static int path_to_abs(const char *in, char *out, int out_size) {
-    const char *target = build_target(in);
-    if (chdir(target) == 0) {
-        if (!getcwd(out, out_size))
-            snprintf(out, out_size, "%s", cwd);
-        chdir(cwd);                      /* put ourselves back in our dir */
-        return 1;
-    }
-    return 0;
+    snprintf(cwd, sizeof(cwd), "%s", docs);
 }
