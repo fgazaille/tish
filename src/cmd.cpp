@@ -8,6 +8,15 @@ static int native_file_error(NUC_FILE *file) {
     return syscall<e_ferror, int>(file) != 0;
 }
 
+/* true if the first len chars of s are all spaces/tabs */
+static int is_blank_seg(const char *s, int len) {
+    int i;
+    for (i = 0; i < len; i++)
+        if (s[i] != ' ' && s[i] != '\t')
+            return 0;
+    return 1;
+}
+
 /* ---------------- program launch ---------------- */
 
 /* look for "<name>.tns" in the current dir, then the documents root. */
@@ -544,6 +553,7 @@ static void run_segment(const char *seg) {
     const char *redir = 0;
     const char *mode = "w";
     int saw_redir = 0;
+    int redir_i = -1;
 
     snprintf(buf, sizeof(buf), "%s", seg);
     token = strtok(buf, " ");
@@ -561,12 +571,14 @@ static void run_segment(const char *seg) {
                 mode = "a";
             saw_redir = 1;
             redir = (i + 1 < argc) ? argv[i + 1] : 0;
-            argc = i;
+            redir_i = i;
             break;
         }
     }
-
-    if (saw_redir && !redir && strcmp(argv[i], ">") == 0) {
+    if (redir_i + 2 < argc){
+        print_line("syntax error: extra redirect argument");
+    }
+    if (saw_redir && !redir) {
         print_line("syntax error: no file after >");
     } else if (saw_redir && !redir && strcmp(argv[i], ">>") == 0) {
         print_line("syntax error: no file after >>");
@@ -584,7 +596,7 @@ static void run_segment(const char *seg) {
                     print_line("cannot open output file");
                 } else {
                     sink = SINK_FILE;
-                    dispatch(argc, argv);
+                    dispatch(redir ? redir_i : argc, argv);
                     if (nuc_fclose(out_file) != 0)
                         io_error = 1;
                     out_file = prev_file;
@@ -592,7 +604,7 @@ static void run_segment(const char *seg) {
                 }
             }
         } else {
-            dispatch(argc, argv);
+            dispatch(redir ? redir_i : argc, argv);
         }
     }
 
@@ -608,6 +620,19 @@ static void run_segment(const char *seg) {
 void run_command(const char *line) {
     char seg[COLS];
     const char *p = line;
+
+    // make sure there are no empty segments
+    const char *q = line;
+    while (1) {
+        const char *bar = strchr(q, '|');
+        int len = bar ? (int)(bar - q) : (int)strlen(q);
+        if (len == 0 || is_blank_seg(q, len)) {
+            print_line("syntax error: empty segment");
+            return;
+        }
+        if (!bar) break;
+        q = bar + 1;
+    }
 
     pipe_in_len = 0;
     pipe_out_len = 0;
