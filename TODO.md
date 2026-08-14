@@ -28,7 +28,7 @@ are ordered roughly by risk, not implementation convenience.
 
 ## P1: Shell Behavior
 
-- [ ] **Report `nl_exec()` failures** in `src/cmd.cpp:33-38`. Keep the redraw
+- [x] **Report `nl_exec()` failures** in `src/cmd.cpp:33-38`. Keep the redraw
   after launch, but show an error when a matching `.tns` file is malformed,
   unsupported, or rejected by the loader.
 - [ ] **Reject empty pipeline stages** in `src/cmd.cpp:544-581`. Commands such
@@ -59,13 +59,12 @@ are ordered roughly by risk, not implementation convenience.
 
 - [ ] **Separate printable keys from editor events** in `src/input.c:40-56`.
   The sentinel values used for history and cursor movement collide with
-  `+`, `-`, `eEXP`, and `10^x`, so those keys cannot currently be entered as
-  characters.
-- [ ] **Correct clickpad operator mappings** in `src/input.c:22-27`.
+  `eEXP` and `10^x`; those two remain temporary navigation fallbacks for
+  debugging.
+- [x] **Correct clickpad operator mappings** in `src/input.c:22-27`.
   Use `KEY_NSPIRE_GTHAN` and `KEY_NSPIRE_BAR` for the physical `>` and `|`
-  keys. `KEY_NSPIRE_MULTIPLY` and `KEY_NSPIRE_EE` are currently mapped to the
-  wrong characters.
-- [ ] Add tests or a diagnostics mode that prints the raw logical event for
+  keys. `KEY_NSPIRE_MULTIPLY` and `KEY_NSPIRE_EE` now map to `*` and `&`.
+- [x] Add tests or a diagnostics mode that prints the raw logical event for
   every supported keypad and touchpad key.
 
 ## P1: Build and Structure

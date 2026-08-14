@@ -19,12 +19,15 @@ static const KeyDef keys[] = {
     {KEY_NSPIRE_0, '0'},       {KEY_NSPIRE_1, '1'},       {KEY_NSPIRE_2, '2'},
     {KEY_NSPIRE_3, '3'},       {KEY_NSPIRE_4, '4'},       {KEY_NSPIRE_5, '5'},
     {KEY_NSPIRE_6, '6'},       {KEY_NSPIRE_7, '7'},       {KEY_NSPIRE_8, '8'},
-    {KEY_NSPIRE_9, '9'},       {KEY_NSPIRE_PLUS, '\x10'}, {KEY_NSPIRE_MINUS, '\x11'},
-    {KEY_NSPIRE_eEXP, '\x12'}, {KEY_NSPIRE_TENX, '\x13'}, {KEY_NSPIRE_UP, '\x10'},
-    {KEY_NSPIRE_DOWN, '\x11'}, {KEY_NSPIRE_LEFT, '\x12'}, {KEY_NSPIRE_RIGHT, '\x13'},
-    {KEY_NSPIRE_DIVIDE, '/'},  {KEY_NSPIRE_PERIOD, '.'},  {KEY_NSPIRE_DEL, '\b'},
-    {KEY_NSPIRE_RET, '\n'},    {KEY_NSPIRE_ENTER, '\n'},  {KEY_NSPIRE_ESC, '\x1b'},
-    {KEY_NSPIRE_NEGATIVE, '-'},{KEY_NSPIRE_EE, '|'},     {KEY_NSPIRE_MULTIPLY, '>'}
+    {KEY_NSPIRE_9, '9'},       {KEY_NSPIRE_PERIOD, '.'},  {KEY_NSPIRE_NEGATIVE, '-'},
+    {KEY_NSPIRE_PLUS, '+'},    {KEY_NSPIRE_MINUS, '-'},   {KEY_NSPIRE_DIVIDE, '/'},
+    {KEY_NSPIRE_MULTIPLY, '*'}, {KEY_NSPIRE_EE, '&'},
+    {KEY_NSPIRE_GTHAN, '>'},   {KEY_NSPIRE_BAR, '|'},
+    {KEY_NSPIRE_CAT, '\x1c'},
+    {KEY_NSPIRE_eEXP, '\x12'}, {KEY_NSPIRE_TENX, '\x13'},
+    {KEY_NSPIRE_UP, '\x10'},   {KEY_NSPIRE_DOWN, '\x11'}, {KEY_NSPIRE_LEFT, '\x12'},
+    {KEY_NSPIRE_RIGHT, '\x13'},{KEY_NSPIRE_DEL, '\b'},    {KEY_NSPIRE_ESC, '\x1b'},
+    {KEY_NSPIRE_RET, '\n'},    {KEY_NSPIRE_ENTER, '\n'}
 };
 
 /* Shifted symbols, PC-keyboard style.  ">" has no key of its own on touchpad
@@ -32,7 +35,8 @@ static const KeyDef keys[] = {
  * and redirection stays usable on a CX II. */
 static const KeyDef shift_keys[] = {
     {KEY_NSPIRE_PERIOD, '>'},
-    {KEY_NSPIRE_DIVIDE, '|'}
+    {KEY_NSPIRE_DIVIDE, '|'},
+    {KEY_NSPIRE_FRAC, '&'}
 };
 
 /* returns the pressed key as a simple char, or 0 if nothing is pressed.
@@ -64,6 +68,75 @@ char wait_key(void) {
         if (c)
             return c;
     }
+}
+
+/* ---------------- CAT key: special-character picker ---------------- */
+
+static const char cat_chars[] = ">|<&;$*?~\\\"'_=+@#%^!:/.()[]{},";
+#define CAT_PER_ROW 15
+#define CAT_N (sizeof(cat_chars) - 1)              /* 2 rows x 15 */
+
+/* overlays the bottom of the screen: rows 26-27 show the chars, row 28 a
+ * hint.  build_screen() redraws over it once the picker closes. */
+static void draw_cat_menu(int sel) {
+    int row, i;
+    for (row = 0; row < 2; row++) {
+        char line[COLS];
+        int x = 0;
+        for (i = 0; i < CAT_PER_ROW; i++) {
+            int idx = row * CAT_PER_ROW + i;
+            int here = (idx == sel);
+            line[x++] = here ? '[' : ' ';
+            line[x++] = cat_chars[idx];
+            line[x++] = here ? ']' : ' ';
+        }
+        line[x] = '\0';
+        set_row(26 + row, line);
+    }
+    set_row(28, "arrows: move | enter: use | esc: cancel");
+}
+
+/* opens the picker; returns 1 with the chosen char in *out, or 0 on esc. */
+static int cat_menu(char *out) {
+    int sel = 0;
+    draw_cat_menu(sel);
+    render();
+    wait_no_key_pressed();                         /* release cat first */
+    for (;;) {
+        idle();
+        if (isKeyPressed(KEY_NSPIRE_LEFT))
+            sel = (sel + CAT_N - 1) % CAT_N;
+        else if (isKeyPressed(KEY_NSPIRE_RIGHT))
+            sel = (sel + 1) % CAT_N;
+        else if (isKeyPressed(KEY_NSPIRE_DOWN))
+            sel = (sel + CAT_PER_ROW) % CAT_N;
+        else if (isKeyPressed(KEY_NSPIRE_UP))
+            sel = (sel + CAT_N - CAT_PER_ROW) % CAT_N;
+        else if (isKeyPressed(KEY_NSPIRE_RET) || isKeyPressed(KEY_NSPIRE_ENTER) ||
+                 isKeyPressed(KEY_NSPIRE_CLICK)) {
+            *out = cat_chars[sel];
+            return 1;
+        } else if (isKeyPressed(KEY_NSPIRE_ESC)) {
+            return 0;
+        } else {
+            continue;                              /* nothing pressed yet */
+        }
+        draw_cat_menu(sel);                        /* moved: redraw + debounce */
+        render();
+        wait_no_key_pressed();
+    }
+}
+
+/* insert one character into the command line at the cursor */
+static void insert_char(char c) {
+    if (cmdlen < COLS - 3) {
+        if (cursor < cmdlen)
+            memmove(&cmdline[cursor+1], &cmdline[cursor], cmdlen - cursor);
+        cmdline[cursor] = c;
+        cursor++;
+        cmdlen++;
+    }
+    browse = -1;
 }
 
 int handleinput(void){// returns 0: no action needed, 1: quit.
@@ -115,15 +188,12 @@ int handleinput(void){// returns 0: no action needed, 1: quit.
             return 1;
         cmdlen = 0;
         cursor = 0;
+    } else if (c == '\x1c') {                 /* CAT: character picker */
+        char ch;
+        if (cat_menu(&ch))
+            insert_char(ch);
     } else if (c) {
-        if (cmdlen < COLS - 3) {
-            if (cursor < cmdlen)
-                memmove(&cmdline[cursor+1], &cmdline[cursor], cmdlen - cursor);
-            cmdline[cursor] = c;
-            cursor++;
-            cmdlen++;
-        }
-        browse = -1;
+        insert_char(c);
     }
     return 0;
 }

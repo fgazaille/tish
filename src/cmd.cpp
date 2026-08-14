@@ -418,7 +418,6 @@ static void cmd_mv(int argc, char* argv[]) {
     if (rename(src, dst) != 0)
         print_line("mv: failed");
 }
-
 static void cmd_help(int argc, char* argv[]) {
     argc++;argv++;// to bypass the annoying unused parameter warnings
     print_line("builtins:");
@@ -567,8 +566,10 @@ static void run_segment(const char *seg) {
         }
     }
 
-    if (saw_redir && !redir) {
+    if (saw_redir && !redir && strcmp(argv[i], ">") == 0) {
         print_line("syntax error: no file after >");
+    } else if (saw_redir && !redir && strcmp(argv[i], ">>") == 0) {
+        print_line("syntax error: no file after >>");
     } else if (argc > 0) {
         if (redir) {
             char target[300];
