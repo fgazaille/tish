@@ -554,6 +554,7 @@ static void run_segment(const char *seg) {
     const char *redir = 0;
     const char *mode = "w";
     int saw_redir = 0;
+    int redir_i = -1;
 
     snprintf(buf, sizeof(buf), "%s", seg);
     token = strtok(buf, " ");
@@ -571,11 +572,13 @@ static void run_segment(const char *seg) {
                 mode = "a";
             saw_redir = 1;
             redir = (i + 1 < argc) ? argv[i + 1] : 0;
-            argc = i;
+            redir_i = i;
             break;
         }
     }
-
+    if (redir_i + 2 < argc){
+        print_line("syntax error: extra redirect argument");
+    }
     if (saw_redir && !redir) {
         print_line("syntax error: no file after >");
     } else if (argc > 0) {
@@ -592,7 +595,7 @@ static void run_segment(const char *seg) {
                     print_line("cannot open output file");
                 } else {
                     sink = SINK_FILE;
-                    dispatch(argc, argv);
+                    dispatch(redir ? redir_i : argc, argv);
                     if (nuc_fclose(out_file) != 0)
                         io_error = 1;
                     out_file = prev_file;
@@ -600,7 +603,7 @@ static void run_segment(const char *seg) {
                 }
             }
         } else {
-            dispatch(argc, argv);
+            dispatch(redir ? redir_i : argc, argv);
         }
     }
 

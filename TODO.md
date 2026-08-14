@@ -34,7 +34,7 @@ are ordered roughly by risk, not implementation convenience.
 - [x] **Reject empty pipeline stages** in `src/cmd.cpp:544-581`. Commands such
   as `echo hello |`, `| cat`, and `echo hello || cat` should produce syntax
   errors before executing earlier stages.
-- [ ] **Validate redirection arity** in `src/cmd.cpp:502-511`. Reject missing
+- [x] **Validate redirection arity** in `src/cmd.cpp:502-511`. Reject missing
   filenames and extra tokens, for example `echo hi > first extra` and
   `echo hi > first > second`, instead of silently ignoring tokens.
 - [ ] **Detect pipe overflow** in `src/render.c:21-28`. The current 4 KB pipe
