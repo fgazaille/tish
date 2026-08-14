@@ -1,3 +1,6 @@
+#include <os.h>
+#include "tish.h"
+
 /* ---------------- program launch ---------------- */
 
 /* look for "<name>.tns" in the current dir, then the documents root. */

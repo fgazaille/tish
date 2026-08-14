@@ -1,4 +1,8 @@
 
+#include <os.h>
+#include <nspireio/nspireio.h>
+#include "tish.h"
+
 /* ---------------- scrollback output ---------------- */
 
 void print_line(const char *line) {

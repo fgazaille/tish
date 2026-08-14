@@ -1,7 +1,10 @@
 
 
+#include <os.h>
+#include "tish.h"
+
 /* copy a directory path into dst, dropping any trailing slash */
-static void normalize_path(char *dst, int dsz, const char *src) {
+void normalize_path(char *dst, int dsz, const char *src) {
     int l;
     snprintf(dst, dsz, "%s", src);
     l = strlen(dst);
@@ -18,7 +21,7 @@ static void normalize_path(char *dst, int dsz, const char *src) {
  * the wrong directory), so we resolve paths ourselves and confirm them with
  * nuc_opendir() alone.  "." / ".." components are collapsed by hand, with
  * ".." never climbing above the real root. */
-static void resolve_path(const char *arg, char *out, int out_size) {
+void resolve_path(const char *arg, char *out, int out_size) {
     char tmp[300];
     char *tok;
     int depth = 0, outl;

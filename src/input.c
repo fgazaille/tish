@@ -1,4 +1,7 @@
 
+#include <os.h>
+#include "tish.h"
+
 /* ---------------- input ---------------- */
 
 typedef struct { t_key key; char ch; } KeyDef;
