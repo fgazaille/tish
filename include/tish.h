@@ -26,6 +26,21 @@ static char hist[16][COLS]; /*history size*/
 static int hist_len = 0;
 static int browse = -1;
 
+/* ---- output sink: where print_line() sends its text ---- */
+#define SINK_SCREEN 0        /* normal: the scrollback window */
+#define SINK_FILE   1        /* "> file": write through nuc_fwrite */
+#define SINK_PIPE   2        /* "cmd | cmd": collect into pipe_buf */
+
+#define PIPE_CAP 4096        /* in-memory pipe between builtins */
+
+static int   sink = SINK_SCREEN;
+static void *out_file = 0;   /* NUC_FILE* while SINK_FILE is active */
+static char  pipe_out[PIPE_CAP];   /* output collected by the current stage */
+static int   pipe_out_len = 0;
+static char  pipe_in[PIPE_CAP];    /* input handed down from the last stage */
+static int   pipe_in_len = 0;
+static int   pipe_ready = 0;       /* pipe_in holds data for this stage */
+
 /* ---- functions shared between modules (single-TU build) ---- */
 void init_fs(void);
 void resolve_path(const char *arg, char *out, int out_size);

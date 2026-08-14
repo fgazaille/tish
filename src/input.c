@@ -24,7 +24,15 @@ static const KeyDef keys[] = {
     {KEY_NSPIRE_DOWN, '\x11'}, {KEY_NSPIRE_LEFT, '\x12'}, {KEY_NSPIRE_RIGHT, '\x13'},
     {KEY_NSPIRE_DIVIDE, '/'},  {KEY_NSPIRE_PERIOD, '.'},  {KEY_NSPIRE_DEL, '\b'},
     {KEY_NSPIRE_RET, '\n'},    {KEY_NSPIRE_ENTER, '\n'},  {KEY_NSPIRE_ESC, '\x1b'},
-    {KEY_NSPIRE_NEGATIVE, '-'}
+    {KEY_NSPIRE_NEGATIVE, '-'},{KEY_NSPIRE_EE, '|'},     {KEY_NSPIRE_MULTIPLY, '>'}
+};
+
+/* Shifted symbols, PC-keyboard style.  ">" has no key of its own on touchpad
+ * models (KEY_NSPIRE_GTHAN only exists on the clickpad), so shift+"." types it
+ * and redirection stays usable on a CX II. */
+static const KeyDef shift_keys[] = {
+    {KEY_NSPIRE_PERIOD, '>'},
+    {KEY_NSPIRE_DIVIDE, '|'}
 };
 
 /* returns the pressed key as a simple char, or 0 if nothing is pressed.
@@ -32,6 +40,11 @@ static const KeyDef keys[] = {
 static char read_key(void) {
     unsigned i;
     int shift = isKeyPressed(KEY_NSPIRE_SHIFT);
+    if (shift) {
+        for (i = 0; i < sizeof(shift_keys) / sizeof(shift_keys[0]); i++)
+            if (isKeyPressed(shift_keys[i].key))
+                return shift_keys[i].ch;
+    }
     for (i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
         if (isKeyPressed(keys[i].key)) {
             char c = keys[i].ch;

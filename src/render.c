@@ -5,9 +5,30 @@
 
 /* ---------------- scrollback output ---------------- */
 
+/* All shell output goes through here.  Depending on the active sink it lands
+ * in the scrollback window, in a file ("> file") or in the pipe buffer
+ * ("cmd | cmd").  Only builtins are affected: launched .tns programs draw on
+ * the screen themselves. */
 void print_line(const char *line) {
-    int slot = n_lines % SCROLL;
-    int i;
+    int slot, i;
+
+    if (sink == SINK_FILE && out_file) {
+        nuc_fwrite((void *)line, 1, strlen(line), (NUC_FILE *)out_file);
+        nuc_fwrite((void *)"\n", 1, 1, (NUC_FILE *)out_file);
+        return;
+    }
+
+    if (sink == SINK_PIPE) {
+        int l = strlen(line);
+        if (pipe_out_len + l + 1 < PIPE_CAP) {  /* silently drop on overflow */
+            memcpy(pipe_out + pipe_out_len, line, l);
+            pipe_out_len += l;
+            pipe_out[pipe_out_len++] = '\n';
+        }
+        return;
+    }
+
+    slot = n_lines % SCROLL;
     for (i = 0; i < COLS - 1 && line[i]; i++)
         scrollback[slot][i] = line[i];
     scrollback[slot][i] = '\0';
