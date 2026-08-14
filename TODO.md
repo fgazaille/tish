@@ -74,7 +74,7 @@ are ordered roughly by risk, not implementation convenience.
   Makefile only tracks `src/tish.c` for `src/tish.o`. Add `-MMD -MP` dependency
   generation or explicit prerequisites so editing an included file rebuilds
   the binary.
-- [ ] **Choose an explicit C/C++ structure**. The current single translation
+- [x] **Choose an explicit C/C++ structure**. The current single translation
   unit is compiled through `nspire-g++`, even though the entry file is named
   `tish.c`. If the single-TU design remains, rename it to `tish.cpp` and make
   that intent clear. Otherwise split modules into separate objects with
