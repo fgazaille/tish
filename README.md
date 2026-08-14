@@ -64,6 +64,8 @@ The touchpad keypad (CX / CX II) has no `>` key, so:
 | `>`       | `shift` + `.` (or the `>` key on clickpads)|
 | `|`       | the `|` key, or `shift` + `÷`              |
 
+The **cat** key opens a character picker for anything else: `> | < & ; $ * ? ~ \ " ' _ = + @ # % ^ ! : / . ( ) [ ] { } ,`. Move with the arrows, insert with enter (or touchpad click), cancel with esc.
+
 ## Filesystem
 
 - `/` is the real root of the calculator's file area (listable via the `nuc_*`
@@ -90,6 +92,7 @@ On an Ndless SDK machine with `nspire-gcc`/`nspire-ld`/`genzehn`/`make-prg` on
 ```sh
 make clean && make        # produces tish.tns
 cd apps/hello && make     # produces the hello sample
+cd apps/keytest && make   # produces the keytest key-identifier
 ```
 
 Build and output always land in the project folder. The Makefile compiles the
@@ -103,8 +106,10 @@ top-level sources only (nested app projects build on their own).
    `ntop.tns`, `TexEdit.tns`) and type `./<name>`.
 3. Exit tish with `exit` (or esc).
 
-Note: the touchpad arrow keys are not readable on the Firebird emulator; type
-with the on-screen keypad instead.
+Note: touchpad arrow keys need a recent Firebird build (the distro 1.6-1
+package has a dead CX II touchpad — fixed upstream in master, PR #378). The
+physical eEXP/TENX keys are temporary left/right navigation fallbacks for
+debugging.
 
 ## Structure
 
@@ -119,6 +124,9 @@ with the on-screen keypad instead.
 - `src/cmd.cpp` — builtins, pipeline/redirection dispatch, `find_program()` +
   `launch()`.
 - `apps/hello/` — a tiny `.tns` program used to test the launch pipeline.
+- `apps/keytest/` — press any key to see which `KEY_NSPIRE_*` constant it maps
+  to (esc exits); keys with no physical counterpart on the CX II, like
+  `KEY_NSPIRE_SIN`, never trigger.
 
 `tish.c` includes the others, so there is a single build unit.
 
