@@ -28,6 +28,5 @@ int main(void) {
         if (handleinput()) break;
 
     }
-    wait_key_pressed();
     return 0;
 }

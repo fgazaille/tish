@@ -7,11 +7,11 @@ a small command prompt with a few built-ins and a way to launch other Ndless
 
 ```
 user@tinspire:/documents$ ls
-MyLib/    hello.tns    ntop.tns
+MyLib/    test.tns    ndless/
 user@tinspire:/documents$ pwd
 /documents
 user@tinspire:/documents$ ./hello
-running hello
+running test
 ```
 
 ## Built-in commands
@@ -59,10 +59,10 @@ user@tinspire:/documents$ cat files.txt | cat
 
 The touchpad keypad (CX / CX II) has no `>` key, so:
 
-| Character | Keys                                      |
-|-----------|-------------------------------------------|
+| Character | Keys                                       |
+|-----------|--------------------------------------------|
 | `>`       | `shift` + `.` (or the `>` key on clickpads)|
-| `|`       | the `|` key, or `shift` + `÷`             |
+| `|`       | the `|` key, or `shift` + `÷`              |
 
 ## Filesystem
 

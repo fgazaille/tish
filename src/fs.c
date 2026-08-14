@@ -4,12 +4,20 @@
 #include "tish.h"
 
 /* copy a directory path into dst, dropping any trailing slash */
-void normalize_path(char *dst, int dsz, const char *src) {
+int normalize_path(char *dst, int dsz, const char *src) {
     int l;
-    snprintf(dst, dsz, "%s", src);
+    size_t src_len;
+
+    if (!dst || !src || dsz < 2)
+        return 0;
+    src_len = strlen(src);
+    if (src_len >= (size_t)dsz)
+        return 0;
+    memcpy(dst, src, src_len + 1);
     l = strlen(dst);
     while (l > 1 && dst[l - 1] == '/')
         dst[--l] = '\0';
+    return 1;
 }
 
 /* Resolve a user-supplied path ("", ".", "..", relative, or absolute) to an
@@ -21,17 +29,26 @@ void normalize_path(char *dst, int dsz, const char *src) {
  * the wrong directory), so we resolve paths ourselves and confirm them with
  * nuc_opendir() alone.  "." / ".." components are collapsed by hand, with
  * ".." never climbing above the real root. */
-void resolve_path(const char *arg, char *out, int out_size) {
-    char tmp[300];
+int resolve_path(const char *arg, char *out, int out_size) {
+    char tmp[512];
     char *tok;
     int depth = 0, outl;
+    int cl, al;
+
+    if (!arg || !out || out_size < 2)
+        return 0;
 
     if (arg[0] == '/') {
-        snprintf(tmp, sizeof(tmp), "%s", arg);   /* absolute: real root */
+        al = strlen(arg);
+        if (al >= (int)sizeof(tmp))
+            return 0;
+        memcpy(tmp, arg, al + 1);                  /* absolute: real root */
     } else {                                     /*if arg is not from root*/
-        int cl = strlen(cwd), al = strlen(arg);
-        if (cl + 1 + al >= (int)sizeof(tmp))        /* keep cwd, truncate arg */
-            al = (int)sizeof(tmp) - cl - 2;
+        cl = strlen(cwd);
+        al = strlen(arg);
+        if (cl >= (int)sizeof(tmp) - 2 ||
+            al > (int)sizeof(tmp) - cl - 2)
+            return 0;
         memcpy(tmp, cwd, cl);
         tmp[cl] = '/';
         memcpy(tmp + cl + 1, arg, al);
@@ -57,12 +74,13 @@ void resolve_path(const char *arg, char *out, int out_size) {
         }
         outl = strlen(out);
         if (outl + (int)strlen(tok) + 2 > out_size)
-            break;
+            return 0;
         snprintf(out + outl, out_size - outl, "/%s", tok);
         depth++;
     }
     if (!*out)
         snprintf(out, out_size, "/");
+    return 1;
 }
 
 /* ---------------- filesystem init ---------------- */
@@ -71,6 +89,7 @@ void resolve_path(const char *arg, char *out, int out_size) {
  * trust it.  cwd is kept purely logical from here on (see resolve_path). */
 void init_fs(void) {
     const char *d = get_documents_dir();
-    normalize_path(docs, sizeof(docs), d ? d : "/");
+    if (!normalize_path(docs, sizeof(docs), d ? d : "/"))
+        snprintf(docs, sizeof(docs), "/");
     snprintf(cwd, sizeof(cwd), "%s", docs);
 }

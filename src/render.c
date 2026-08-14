@@ -13,8 +13,10 @@ void print_line(const char *line) {
     int slot, i;
 
     if (sink == SINK_FILE && out_file) {
-        nuc_fwrite((void *)line, 1, strlen(line), (NUC_FILE *)out_file);
-        nuc_fwrite((void *)"\n", 1, 1, (NUC_FILE *)out_file);
+        size_t len = strlen(line);
+        if (nuc_fwrite((void *)line, 1, len, out_file) != len ||
+            nuc_fwrite((void *)"\n", 1, 1, out_file) != 1)
+            io_error = 1;
         return;
     }
 
@@ -35,12 +37,23 @@ void print_line(const char *line) {
     n_lines++;
 }
 
-void print_multiline(char* text){
-    char *line;
-    line = strtok(text, "\n");
-    while (line != NULL){
+void print_multiline(const char *text) {
+    char line[COLS];
+    const char *p = text;
+
+    while (p && *p) {
+        int i = 0;
+        while (*p && *p != '\n' && i < COLS - 1) {
+            if (*p != '\r')
+                line[i++] = *p;
+            p++;
+        }
+        while (*p && *p != '\n')
+            p++;
+        line[i] = '\0';
         print_line(line);
-        line = strtok(NULL, "\n");
+        if (*p == '\n')
+            p++;
     }
 }
 /* ---------------- rendering (base plumbing) ---------------- */
@@ -99,9 +112,14 @@ void build_screen(void) {
     for (i = 0; prompt[i] && x < COLS - 4; i++)
         line[x++] = prompt[i];
 
-    for (i = 0; i < cmdlen && x < COLS - 1; i++) {
-        if (i == cursor)
+    for (i = 0; i < cmdlen; i++) {
+        if (i == cursor) {
+            if (x >= COLS - 1)
+                break;
             line[x++] = '|';                  /* cursor before the char */
+        }
+        if (x >= COLS - 1)
+            break;
         line[x++] = cmdline[i];
     }
 
