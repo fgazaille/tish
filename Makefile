@@ -6,7 +6,7 @@ GXX = nspire-g++
 LD  = nspire-ld
 GENZEHN = genzehn
 
-GCCFLAGS = -Wall -W -marm -Iinclude
+GCCFLAGS = -Wall -W -marm -Iinclude -MMD -MP
 LDFLAGS = -Wl,--nspireio
 ZEHNFLAGS = --name "tish"
 
@@ -17,6 +17,7 @@ else
 endif
 
 OBJS = src/tish.o
+-include $(OBJS:.o=.d)
 EXE = tish
 DISTDIR = .
 vpath %.tns $(DISTDIR)
@@ -42,4 +43,4 @@ $(EXE).tns: $(EXE).elf
 	rm $@.zehn
 
 clean:
-	rm -f $(OBJS) $(DISTDIR)/$(EXE).tns $(DISTDIR)/$(EXE).elf $(DISTDIR)/$(EXE).zehn
+	rm -f $(OBJS) $(OBJS:.o=.d) $(DISTDIR)/$(EXE).tns $(DISTDIR)/$(EXE).elf $(DISTDIR)/$(EXE).zehn

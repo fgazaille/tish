@@ -69,7 +69,7 @@ are ordered roughly by risk, not implementation convenience.
 
 ## P1: Build and Structure
 
-- [ ] **Track text-included source/header dependencies** in `Makefile`.
+- [x] **Track text-included source/header dependencies** in `Makefile`.
   `src/tish.c` includes `fs.c`, `render.c`, `cmd.cpp`, and `input.c`, but the
   Makefile only tracks `src/tish.c` for `src/tish.o`. Add `-MMD -MP` dependency
   generation or explicit prerequisites so editing an included file rebuilds

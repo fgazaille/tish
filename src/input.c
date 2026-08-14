@@ -72,7 +72,6 @@ char wait_key(void) {
 
 /* ---------------- CAT key: special-character picker ---------------- */
 
-//static const char cat_chars[] = ">|<&;$*?~\\\"'_=+@#%^!:/.()[]{},";
 static const char cat_chars[] =
 "!\"#$%&'()*+,-./\
 :;<=>?@[\\]^_`{|\

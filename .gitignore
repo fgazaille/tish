@@ -1,5 +1,6 @@
 # Build artifacts (Ndless toolchain)
 *.o
+*.d
 *.elf
 *.tns
 *.zehn
