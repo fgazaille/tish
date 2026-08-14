@@ -104,7 +104,15 @@ int handleinput(void){// returns 0: no action needed, 1: quit.
     } else if (c == '\n') {
         cmdline[cmdlen] = '\0';
         if (cmdlen > 0){
-            print_line(cmdline);
+            char buf[COLS], prompt[COLS];
+            int i = 0, j;
+            build_prompt(prompt, sizeof(prompt));
+            for (j = 0; prompt[j] && i < COLS - 1; i++, j++)
+                buf[i] = prompt[j];
+            for (j = 0; cmdline[j] && i < COLS - 1; i++, j++)
+                buf[i] = cmdline[j];
+            buf[i] = '\0';
+            print_line(buf);
             memmove(&hist[1][0], &hist[0][0], 15 * COLS);
             snprintf(hist[0] , COLS, "%s", cmdline);
             if (hist_len < 16) {hist_len++;}

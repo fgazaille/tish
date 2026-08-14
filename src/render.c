@@ -89,9 +89,10 @@ void full_redraw(void) {
 /* ---------------- screen layout ---------------- */
 
 /* rows 0..27 = scrollback window, row 28 = prompt, row 29 = status bar */
-static void build_prompt(char *out, int out_size) {
+char* build_prompt(char *out, int out_size) {
     //snprintf(out, out_size, "%.*s", out_size - 1, cwd);   // show cwd, e.g. "/"
     snprintf(out, out_size, "user@tinspire:%.*s$ ", out_size - 17, cwd);
+    return out;
 }
 
 void build_screen(void) {
@@ -101,7 +102,6 @@ void build_screen(void) {
 
     for (y = 0; y < ROWS - 2; y++) {
         int idx = n_lines - (ROWS - 2) + y;   /* last ROWS-2 lines */
-        //set_row(y, (idx >= 0 && idx < n_lines) ? scrollback[idx] : "");
         set_row(y, (idx >= 0 && idx < n_lines) ? scrollback[idx % SCROLL] : "");
     }
 
