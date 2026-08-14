@@ -1,5 +1,5 @@
 /*
- * tish - a Unix-like shell (option A) for the TI-Nspire CX II CAS
+ * tish - a Unix-like shell for the TI-Nspire CX II CAS
  *
  * Builtins live inside tish (cd/ls/pwd/whoami/clear/help/exit). Anything else
  * is treated as a program name: we look for "<name>.tns" and nl_exec() it.

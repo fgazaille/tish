@@ -64,7 +64,9 @@ The touchpad keypad (CX / CX II) has no `>` key, so:
 | `>`       | `shift` + `.` (or the `>` key on clickpads)|
 | `|`       | the `|` key, or `shift` + `÷`              |
 
-The **cat** key opens a character picker for anything else: `> | < & ; $ * ? ~ \ " ' _ = + @ # % ^ ! : / . ( ) [ ] { } ,`. Move with the arrows, insert with enter (or touchpad click), cancel with esc.
+The **cat** key opens a character picker for anything else:
+``! \ " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ \ ] ^ _ ` { | } ~ ``.
+Move with the arrows, insert with enter (or touchpad click), cancel with esc.
 
 ## Filesystem
 
@@ -86,6 +88,7 @@ The **cat** key opens a character picker for anything else: `> | < & ; $ * ? ~ \
 ## Building
 
 The Ndless toolchain is cross-compile only (host `gcc` cannot produce a `.tns`).
+Installation guide can be found [here](https://www.hackspire.org/C_and_assembly_development_introduction/).
 On an Ndless SDK machine with `nspire-gcc`/`nspire-ld`/`genzehn`/`make-prg` on
 `PATH`:
 
@@ -115,12 +118,13 @@ debugging.
 
 - `include/tish.h` — shared state: screen/scrollback buffers, command line,
   history (`hist`), cwd/docs paths, output sink + pipe buffers, flags.
-- `src/tish.c` — main loop: key dispatch, history browsing, line editing.
+- `src/tish.cpp` — main loop: key dispatch, history browsing, line editing.
 - `src/fs.c` — init, path normalization, logical path resolution
   (`resolve_path`), cwd/docs tracking.
 - `src/render.c` — output sink (`print_line`), scrollback, incremental render,
   screen layout.
-- `src/input.c` — key -> char mapping (`read_key`/`wait_key`).
+- `src/input.c` — key -> char mapping (`read_key`/`wait_key`), CAT character
+  picker.
 - `src/cmd.cpp` — builtins, pipeline/redirection dispatch, `find_program()` +
   `launch()`.
 - `apps/hello/` — a tiny `.tns` program used to test the launch pipeline.
@@ -128,7 +132,7 @@ debugging.
   to (esc exits); keys with no physical counterpart on the CX II, like
   `KEY_NSPIRE_SIN`, never trigger.
 
-`tish.c` includes the others, so there is a single build unit.
+`tish.cpp` includes the others, so there is a single build unit.
 
 ## Layout
 
