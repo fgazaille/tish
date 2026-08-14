@@ -6,6 +6,10 @@
 #define COLS 53
 #define SCROLL 40            /* max scrollback lines kept */
 
+#define CAT_PER_ROW 15
+#define CAT_ROWS 3
+#define CAT_N (sizeof(cat_chars) - 1)
+
 static char scr[ROWS][COLS];
 static char prev[ROWS][COLS];
 

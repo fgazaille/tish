@@ -72,15 +72,17 @@ char wait_key(void) {
 
 /* ---------------- CAT key: special-character picker ---------------- */
 
-static const char cat_chars[] = ">|<&;$*?~\\\"'_=+@#%^!:/.()[]{},";
-#define CAT_PER_ROW 15
-#define CAT_N (sizeof(cat_chars) - 1)              /* 2 rows x 15 */
+//static const char cat_chars[] = ">|<&;$*?~\\\"'_=+@#%^!:/.()[]{},";
+static const char cat_chars[] =
+"!\"#$%&'()*+,-./\
+:;<=>?@[\\]^_`{|\
+}~";
 
 /* overlays the bottom of the screen: rows 26-27 show the chars, row 28 a
  * hint.  build_screen() redraws over it once the picker closes. */
 static void draw_cat_menu(int sel) {
     int row, i;
-    for (row = 0; row < 2; row++) {
+    for (row = 0; row < CAT_ROWS; row++) {
         char line[COLS];
         int x = 0;
         for (i = 0; i < CAT_PER_ROW; i++) {
@@ -91,7 +93,7 @@ static void draw_cat_menu(int sel) {
             line[x++] = here ? ']' : ' ';
         }
         line[x] = '\0';
-        set_row(26 + row, line);
+        set_row(28 - CAT_ROWS + row, line);
     }
     set_row(28, "arrows: move | enter: use | esc: cancel");
 }
@@ -106,7 +108,7 @@ static int cat_menu(char *out) {
         idle();
         if (isKeyPressed(KEY_NSPIRE_LEFT))
             sel = (sel + CAT_N - 1) % CAT_N;
-        else if (isKeyPressed(KEY_NSPIRE_RIGHT))
+        else if (isKeyPressed(KEY_NSPIRE_RIGHT) || isKeyPressed(KEY_NSPIRE_TAB))
             sel = (sel + 1) % CAT_N;
         else if (isKeyPressed(KEY_NSPIRE_DOWN))
             sel = (sel + CAT_PER_ROW) % CAT_N;
