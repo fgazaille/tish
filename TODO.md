@@ -50,7 +50,7 @@ are ordered roughly by risk, not implementation convenience.
   against a different native directory. Choose and document one approach:
   preserve the limitation, pass the logical directory explicitly, or establish
   the native directory after verifying Ndless `chdir()` behavior.
-- [ ] **Protect the logical working directory from mutations** in
+- [x] **Protect the logical working directory from mutations** in
   `src/cmd.cpp:65-89`. Reject removing/renaming `cwd` or an ancestor, or
   recompute `cwd` after a successful mutation. Currently `pwd` can continue to
   show a directory that no longer exists.

@@ -58,5 +58,8 @@ void render(void);
 char wait_key(void);
 int  handleinput(void);
 void run_command(const char *line);
+int is_ancestor_of(const char *ancestor, const char *path);
+bool valid_path(const char* path);
+
 
 #endif /* TISH_H */

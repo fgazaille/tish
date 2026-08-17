@@ -93,3 +93,21 @@ void init_fs(void) {
         snprintf(docs, sizeof(docs), "/");
     snprintf(cwd, sizeof(cwd), "%s", docs);
 }
+
+int is_ancestor_of(const char *ancestor, const char *path) {
+    size_t l = strlen(ancestor);
+    if (l == 1 && ancestor[0] == '/')
+        return 1;                              /* root contains everything */
+    if (strncmp(path, ancestor, l) != 0)
+        return 0;
+    return path[l] == '\0' || path[l] == '/';  /* equal, or boundary is a '/' */
+}
+
+bool valid_path(const char* path){
+    NUC_DIR *probe = nuc_opendir(path);
+    if (!probe) {
+        return 0;
+    }
+    nuc_closedir(probe);
+    return 1;
+}

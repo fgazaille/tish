@@ -411,6 +411,11 @@ static void cmd_rmdir(int argc, char* argv[]) {
     }
     if (rmdir(target) != 0)
         print_line("rmdir: failed");
+    else {
+        if (is_ancestor_of(target, cwd)){
+            resolve_path(strcat(target, "/../"), cwd, 300);
+        }
+    }
 }
 
 static void cmd_mv(int argc, char* argv[]) {
@@ -426,7 +431,14 @@ static void cmd_mv(int argc, char* argv[]) {
     }
     if (rename(src, dst) != 0)
         print_line("mv: failed");
+    else if (is_ancestor_of(src, cwd)){
+        char new_cwd[300];
+        strcpy(new_cwd, dst);
+        strncat(new_cwd, cwd + strlen(src), 299);
+        strncpy(cwd, new_cwd, 299);
+    }
 }
+
 static void cmd_help(int argc, char* argv[]) {
     argc++;argv++;// to bypass the annoying unused parameter warnings
     print_line("builtins:");
