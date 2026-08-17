@@ -117,6 +117,7 @@ void build_screen(void) {
             if (x >= COLS - 1)
                 break;
             line[x++] = '|';                  /* cursor before the char */
+            continue;
         }
         if (x >= COLS - 1)
             break;

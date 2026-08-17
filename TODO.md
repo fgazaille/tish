@@ -82,7 +82,7 @@ are ordered roughly by risk, not implementation convenience.
 - [ ] Move application-wide state out of `static` definitions in
   `include/tish.h` before introducing separate translation units. Use one
   definition in a source file and `extern` declarations in the header.
-- [ ] Handle command-token allocation failure in `src/cmd.cpp:546-551`, or
+- [x] Handle command-token allocation failure in `src/cmd.cpp:546-551`, or
   remove the heap allocation entirely.
 
 ## P2: Performance and Memory
