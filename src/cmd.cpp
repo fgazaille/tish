@@ -562,7 +562,7 @@ static void run_segment(const char *seg) {
     const char *redir = 0;
     const char *mode = "w";
     int saw_redir = 0;
-    int redir_i = -1;
+    int redir_i = 0;
 
     snprintf(buf, sizeof(buf), "%s", seg);
     token = strtok(buf, " ");
@@ -584,7 +584,7 @@ static void run_segment(const char *seg) {
             break;
         }
     }
-    if (redir_i + 2 < argc){
+    if (redir && redir_i + 2 < argc){
         print_line("syntax error: extra redirect argument");
     }
     if (saw_redir && !redir) {
