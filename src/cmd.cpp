@@ -546,8 +546,17 @@ static void run_segment(const char *seg) {
     char buf[64];
     int argc = 0, i;
     char **argv = new char*[64];
+    if (argv == NULL){
+        print_line("argv allocation error. Abort.");
+        return;
+    }
     for (i = 0; i < 64; i++){
         argv[i] = new char[64];
+        if (argv == NULL){
+            print_line("argument allocation error. Abort.");
+            return;
+        }
+
     }
     char* token;
     const char *redir = 0;
