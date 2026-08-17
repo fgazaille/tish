@@ -5,43 +5,43 @@ are ordered roughly by risk, not implementation convenience.
 
 ## P0: Correctness and Safety
 
-- [x] **Fix prompt buffer overflow** in `src/render.c:102-111`.
+- [x] **Fix prompt buffer overflow** in `src/render.c:112-127`.
   Reserve space for both a cursor marker and a command character before writing
   either one. A long command with the cursor near the end can write past the
   `line[COLS]` stack buffer.
-- [x] **Stop modifying string literals** in `src/cmd.cpp:73-85` and
-  `src/render.c:38-44`. `ls --help` casts a `const` raw string to `char *` and
+- [x] **Stop modifying string literals** in `src/cmd.cpp:96-110` and
+  `src/render.c:40-58`. `ls --help` casts a `const` raw string to `char *` and
   passes it to `strtok()`. Make `print_multiline()` accept `const char *` and
   scan without modifying its input, or copy the text into writable storage.
-- [x] **Make path construction length-aware** in `src/fs.c:24-66`. Reject
+- [x] **Make path construction length-aware** in `src/fs.c:32-84`. Reject
   overflow instead of truncating paths. In particular, prevent a near-300-byte
   `cwd` from making the relative-path length negative before `memcpy()`.
-- [x] **Remove the extra blocking keypress on exit** in `src/tish.c:27-31`.
+- [x] **Remove the extra blocking keypress on exit** in `src/tish.cpp:24-30`.
   `wait_key_pressed()` waits for release and then waits for a new key, so Escape
   and `exit` do not return immediately.
-- [x] **Reject same-file copies** in `src/cmd.cpp:293-310`. `cp file file`
+- [x] **Reject same-file copies** in `src/cmd.cpp:337-340`. `cp file file`
   opens the destination with `"w"` after opening the source and truncates the
   source before copying.
-- [x] **Check file read/write/close results** in `src/cmd.cpp:222-245`,
-  `src/cmd.cpp:296-310`, and `src/render.c:15-18`. Report short writes, read
+- [x] **Check file read/write/close results** in `src/cmd.cpp:256-280`,
+  `src/cmd.cpp:354-363`, and `src/render.c:15-20`. Report short writes, read
   failures, close failures, and partial copies instead of reporting success.
 
 ## P1: Shell Behavior
 
-- [x] **Report `nl_exec()` failures** in `src/cmd.cpp:33-38`. Keep the redraw
+- [x] **Report `nl_exec()` failures** in `src/cmd.cpp:54-56`. Keep the redraw
   after launch, but show an error when a matching `.tns` file is malformed,
   unsupported, or rejected by the loader.
-- [x] **Reject empty pipeline stages** in `src/cmd.cpp:544-581`. Commands such
+- [x] **Reject empty pipeline stages** in `src/cmd.cpp:624-635`. Commands such
   as `echo hello |`, `| cat`, and `echo hello || cat` should produce syntax
   errors before executing earlier stages.
-- [x] **Validate redirection arity** in `src/cmd.cpp:502-511`. Reject missing
+- [x] **Validate redirection arity** in `src/cmd.cpp:567-584`. Reject missing
   filenames and extra tokens, for example `echo hi > first extra` and
   `echo hi > first > second`, instead of silently ignoring tokens.
-- [ ] **Detect pipe overflow** in `src/render.c:21-28`. The current 4 KB pipe
+- [ ] **Detect pipe overflow** in `src/render.c:23-31`. The current 4 KB pipe
   buffer silently drops output after it fills. Add an overflow flag and report
   `pipe: output too large`, or replace the buffer with a streaming design.
 - [ ] **Reject or clearly report unsupported native-program piping and
-  redirection** in `src/cmd.cpp:518-535` and `src/cmd.cpp:544-581`. A launched
+  redirection** in `src/cmd.cpp:527-540` and `src/cmd.cpp:545-615`. A launched
   `.tns` program owns the screen and does not use Tish's output sink; only the
   shell's `running ...` message is redirected or piped.
 - [ ] **Decide how child programs inherit the working directory**. Tish tracks
@@ -51,7 +51,7 @@ are ordered roughly by risk, not implementation convenience.
   preserve the limitation, pass the logical directory explicitly, or establish
   the native directory after verifying Ndless `chdir()` behavior.
 - [ ] **Protect the logical working directory from mutations** in
-  `src/cmd.cpp:343-363`. Reject removing/renaming `cwd` or an ancestor, or
+  `src/cmd.cpp:65-89`. Reject removing/renaming `cwd` or an ancestor, or
   recompute `cwd` after a successful mutation. Currently `pwd` can continue to
   show a directory that no longer exists.
 
@@ -82,18 +82,18 @@ are ordered roughly by risk, not implementation convenience.
 - [ ] Move application-wide state out of `static` definitions in
   `include/tish.h` before introducing separate translation units. Use one
   definition in a source file and `extern` declarations in the header.
-- [ ] Handle command-token allocation failure in `src/cmd.cpp:481-487`, or
+- [ ] Handle command-token allocation failure in `src/cmd.cpp:546-551`, or
   remove the heap allocation entirely.
 
 ## P2: Performance and Memory
 
-- [ ] **Avoid unconditional full VRAM commits** in `src/render.c:56-68`.
+- [ ] **Avoid unconditional full VRAM commits** in `src/render.c:69-82`.
   Track whether any cell changed and skip `nio_vram_draw()` when there is no
   visual update.
 - [ ] Track dirty rows or regions. `build_screen()` reconstructs all scrollback
   rows on every input event even when only the prompt row changed.
 - [ ] Replace the per-command allocation of 64 separate 64-byte strings in
-  `src/cmd.cpp:481-487` with one bounded token buffer plus an array of pointers.
+  `src/cmd.cpp:546-551` with one bounded token buffer plus an array of pointers.
 - [ ] Increase the file-copy buffer from 256 bytes to a modest 1-4 KiB buffer,
   subject to stack and heap measurements on the calculator.
 - [ ] Avoid scanning `docs` twice in `find_program()` when `cwd` already equals
