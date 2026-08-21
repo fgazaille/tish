@@ -23,11 +23,13 @@ static int is_blank_seg(const char *s, int len) {
 /* look for "<name>.tns" in the current dir, then the documents root. */
 static int find_program(const char *name, char *path_buf, int buf_size) {
     const char *roots[2];
+    char want[80];
     int r;
     roots[0] = cwd;
     roots[1] = docs;
+    if (strlen(name) + sizeof(".tns") > sizeof(want))
+        return 0;                  /* name too long to ever match a program */
     for (r = 0; r < 2; r++) {
-        char want[80];
         NUC_DIR *dp;
         struct nuc_dirent *ep;
         snprintf(want, sizeof(want), "%s.tns", name);
@@ -153,8 +155,6 @@ static void cmd_hist(int argc, char* argv[]) {
         snprintf(line, sizeof(line), "%d: %.*s", i, COLS - 1, hist[i]);
         print_line(line);
     }
-    snprintf(line, COLS, "len=%d browse=%d", hist_len, browse);
-    print_line(line);
 }
 
 static void cmd_dbg(int argc, char* argv[]) {
