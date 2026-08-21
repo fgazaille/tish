@@ -1,5 +1,6 @@
 #include <os.h>
 #include <syscall.h>
+#include <new>
 #include "tish.h"
 
 static int native_file_error(NUC_FILE *file) {
@@ -412,8 +413,12 @@ static void cmd_rmdir(int argc, char* argv[]) {
     if (rmdir(target) != 0)
         print_line("rmdir: failed");
     else {
-        if (is_ancestor_of(target, cwd)){
-            resolve_path(strcat(target, "/../"), cwd, 300);
+        /* cwd inside the removed dir: climb one level logically */
+        size_t tl = strlen(target);
+        if (is_ancestor_of(target, cwd) &&
+            tl + sizeof("/../") <= sizeof(target)) {
+            memcpy(target + tl, "/../", sizeof("/../"));
+            resolve_path(target, cwd, sizeof(cwd));
         }
     }
 }
@@ -431,11 +436,11 @@ static void cmd_mv(int argc, char* argv[]) {
     }
     if (rename(src, dst) != 0)
         print_line("mv: failed");
-    else if (is_ancestor_of(src, cwd)){
+    else if (is_ancestor_of(src, cwd)) {
+        /* cwd inside the moved tree: rewrite it under the new name */
         char new_cwd[300];
-        strcpy(new_cwd, dst);
-        strncat(new_cwd, cwd + strlen(src), 299);
-        strncpy(cwd, new_cwd, 299);
+        snprintf(new_cwd, sizeof(new_cwd), "%s%s", dst, cwd + strlen(src));
+        snprintf(cwd, sizeof(cwd), "%s", new_cwd);
     }
 }
 
@@ -557,18 +562,26 @@ static void dispatch(int argc, char* argv[]) {
 static void run_segment(const char *seg) {
     char buf[64];
     int argc = 0, i;
-    char **argv = new char*[64];
-    if (argv == NULL){
+    /* value-initialized so every slot starts NULL: delete[] on a null
+     * pointer is a no-op, keeping the cleanup below safe on partial failure */
+    char **argv = new (std::nothrow) char*[64]();
+    if (!argv) {
         print_line("argv allocation error. Abort.");
         return;
     }
-    for (i = 0; i < 64; i++){
-        argv[i] = new char[64];
-        if (argv == NULL){
+    int alloc_ok = 1;
+    for (i = 0; i < 64 && alloc_ok; i++){
+        argv[i] = new (std::nothrow) char[64];
+        if (!argv[i]) {
             print_line("argument allocation error. Abort.");
-            return;
+            alloc_ok = 0;
         }
-
+    }
+    if (!alloc_ok) {
+        for (i = 0; i < 64; i++)
+            delete[] argv[i];
+        delete[] argv;
+        return;
     }
     char* token;
     const char *redir = 0;
@@ -596,14 +609,18 @@ static void run_segment(const char *seg) {
             break;
         }
     }
-    if (redir && redir_i + 2 < argc){
+    int syntax_error = 0;
+    if (redir && redir_i + 2 < argc) {
         print_line("syntax error: extra redirect argument");
+        syntax_error = 1;
     }
     if (saw_redir && !redir) {
-        print_line("syntax error: no file after >");
-    } else if (saw_redir && !redir && strcmp(argv[i], ">>") == 0) {
-        print_line("syntax error: no file after >>");
-    } else if (argc > 0) {
+        print_line(strcmp(argv[redir_i], ">>") == 0 ?
+                   "syntax error: no file after >>" :
+                   "syntax error: no file after >");
+        syntax_error = 1;
+    }
+    if (!syntax_error && argc > 0) {
         if (redir) {
             char target[300];
             int prev_sink = sink;

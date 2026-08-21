@@ -77,14 +77,14 @@ static const char cat_chars[] =
 :;<=>?@[\\]^_`{|\
 }~";
 
-/* overlays the bottom of the screen: rows 26-27 show the chars, row 28 a
+/* overlays the bottom of the screen: rows 25-27 show the chars, row 28 a
  * hint.  build_screen() redraws over it once the picker closes. */
 static void draw_cat_menu(int sel) {
     int row, i;
     for (row = 0; row < CAT_ROWS; row++) {
         char line[COLS];
         int x = 0;
-        for (i = 0; i < CAT_PER_ROW; i++) {
+        for (i = 0; i < CAT_PER_ROW && row * CAT_PER_ROW + i < (int)CAT_N; i++) {
             int idx = row * CAT_PER_ROW + i;
             int here = (idx == sel);
             line[x++] = here ? '[' : ' ';
