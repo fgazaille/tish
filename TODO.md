@@ -123,10 +123,15 @@ are ordered roughly by risk, not implementation convenience.
 
 - [x] Build from a clean checkout with the Ndless cross-toolchain.
 - [x] Run `nspire-g++ -Wall -Wextra -marm -Iinclude -fsyntax-only src/tish.cpp`.
-- [ ] Test the P0 fixes on Firebird and a physical CX II calculator.
+- [x] Test the recent fixes on a physical CX II calculator (cat picker grid +
+      ragged-row navigation, redirect syntax errors, pipe empty-stage
+      rejection, overflow report, hist output, rmdir/mv cwd recompute,
+      launches, render sanity — 2026-08-21 session; Firebird untested).
 - [ ] Test clickpad and touchpad input mappings separately.
-- [ ] Test launch success, launch failure, screen restoration, and child path
-  behavior.
+- [x] Test launch success, launch failure, screen restoration, and child path
+  behavior (`./prog` run/return/redraw and not-found verified on device;
+  nested-relative child cwd remains untested by design, see the inheritance
+  decision above).
 - [x] Run `genzehn --info` on the generated Zehn output.
 - [x] Verify that editing every text-included source and header causes a rebuild
   (`touch include/tish.h && make` recompiles; second `make` is a no-op).
