@@ -104,8 +104,9 @@ are ordered roughly by risk, not implementation convenience.
 ## P2: Reliability and Diagnostics
 
 - [ ] Add an explicit command-status path so builtin failures and pipeline
-  failures propagate instead of being represented only by printed text.
-- [ ] Add an `errno`/native-error diagnostic helper for `nuc_*` operations,
+  failures propagate instead of being represented only by printed text. NOTE: for pipelines, only last status is recorded.
+- [ ] Add opt-in pipefail flag in `include/tish.h:56`: should be available to user as set -o pipefail.
+- [x] Add an `errno`/native-error diagnostic helper for `nuc_*` operations,
   without assuming that every direct Nucleus syscall updates newlib `errno`.
   (`native_file_error()` in `src/cmd.cpp:6-10` polls the OS `ferror` syscall;
   wired into cat/cp and the file sink. Legacy mkdir/rm/rmdir/mv stay opaque.)
