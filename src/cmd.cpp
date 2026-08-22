@@ -24,12 +24,14 @@ static int is_blank_seg(const char *s, int len) {
 static int find_program(const char *name, char *path_buf, int buf_size) {
     const char *roots[2];
     char want[80];
-    int r;
+    int r, nr = 2;
     roots[0] = cwd;
     roots[1] = docs;
+    if (!strcmp(roots[0], roots[1]))
+        nr = 1;                        /* cwd already is docs: scan it once */
     if (strlen(name) + sizeof(".tns") > sizeof(want))
         return 0;                  /* name too long to ever match a program */
-    for (r = 0; r < 2; r++) {
+    for (r = 0; r < nr; r++) {
         NUC_DIR *dp;
         struct nuc_dirent *ep;
         snprintf(want, sizeof(want), "%s.tns", name);
@@ -675,6 +677,7 @@ void run_command(const char *line) {
     pipe_in_len = 0;
     pipe_out_len = 0;
     pipe_ready = 0;
+    pipe_overflow = 0;
     io_error = 0;
 
     while (1) {
@@ -707,6 +710,10 @@ void run_command(const char *line) {
 
     pipe_ready = 0;
     pipe_in_len = 0;
+    if (pipe_overflow) {
+        print_line("pipe: output too large");
+        pipe_overflow = 0;
+    }
     if (io_error) {
         sink = SINK_SCREEN;
         out_file = 0;

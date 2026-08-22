@@ -37,9 +37,9 @@ are ordered roughly by risk, not implementation convenience.
 - [x] **Validate redirection arity** in `src/cmd.cpp:588-612`. Reject missing
   filenames and extra tokens, for example `echo hi > first extra` and
   `echo hi > first > second`, instead of silently ignoring tokens.
-- [ ] **Detect pipe overflow** in `src/render.c:23-31`. The current 4 KB pipe
-  buffer silently drops output after it fills. Add an overflow flag and report
-  `pipe: output too large`, or replace the buffer with a streaming design.
+- [x] **Detect pipe overflow** in `src/render.c:23-35`. The 4 KB pipe
+  buffer no longer drops output silently: an overflow flag makes the pipeline
+  report `pipe: output too large` when it finishes.
 - [ ] **Reject or clearly report unsupported native-program piping and
   redirection** in `src/cmd.cpp:525-538` and `src/cmd.cpp:557-650`. A launched
   `.tns` program owns the screen and does not use Tish's output sink; only the
@@ -87,7 +87,7 @@ are ordered roughly by risk, not implementation convenience.
 
 ## P2: Performance and Memory
 
-- [ ] **Avoid unconditional full VRAM commits** in `src/render.c:69-82`.
+- [x] **Avoid unconditional full VRAM commits** in `src/render.c:69-85`.
   Track whether any cell changed and skip `nio_vram_draw()` when there is no
   visual update.
 - [ ] Track dirty rows or regions. `build_screen()` reconstructs all scrollback
@@ -96,7 +96,7 @@ are ordered roughly by risk, not implementation convenience.
   `src/cmd.cpp:560-583` with one bounded token buffer plus an array of pointers.
 - [ ] Increase the file-copy buffer from 256 bytes to a modest 1-4 KiB buffer,
   subject to stack and heap measurements on the calculator.
-- [ ] Avoid scanning `docs` twice in `find_program()` when `cwd` already equals
+- [x] Avoid scanning `docs` twice in `find_program()` when `cwd` already equals
   `docs`.
 - [ ] Keep using `idle()` in polling loops. Do not replace it with a busy loop;
   the current Ndless wait strategy is appropriate for power usage.
