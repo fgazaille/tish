@@ -46,23 +46,27 @@ static int find_program(const char *name, char *path_buf, int buf_size) {
 }
 
 /* run the program, then fix the screen (prev[] is stale afterwards). */
-static void launch(const char *path, const char *name) {
+static int launch(const char *path, const char *name) {
     char msg[COLS];
     int result;
     snprintf(msg, sizeof(msg), "running %s", name);
     print_line(msg);
     result = nl_exec(path, 0, NULL);
-    if (result == 0xDEAD)
+    if (result == 0xDEAD){
         print_line("launch failed");
+        return STATUS_CMD_NOT_FOUND;
+    }
     full_redraw();
+    return STATUS_SUCCESS;
 }
 
-static void cmd_pwd(int argc, char* argv[]) {
+static int cmd_pwd(int argc, char* argv[]) {
     argc++;argv++;// to bypass the annoying unused parameter warnings
     print_line(cwd);
+    return STATUS_SUCCESS;
 }
 
-static void cmd_cd(int argc, char* argv[]) {
+static int cmd_cd(int argc, char* argv[]) {
     char target[300];
     NUC_DIR *probe;
 
@@ -70,25 +74,28 @@ static void cmd_cd(int argc, char* argv[]) {
         snprintf(target, sizeof(target), "%s", docs);
     } else if (argc > 2){
         print_line("cd: too many arguments");
-        return;
+        return STATUS_MISUSE;
     } else {
         if (!resolve_path(argv[1], target, sizeof(target))) {
             print_line("cd: path too long");
-            return;
+            return STATUS_FAIL;
         }
     }
 
     probe = nuc_opendir(target);
     if (!probe) {
         print_line("cd: no such directory");
-        return;
+        return STATUS_FAIL;
     }
     nuc_closedir(probe);
-    if (!normalize_path(cwd, sizeof(cwd), target))
+    if (!normalize_path(cwd, sizeof(cwd), target)){
         print_line("cd: path too long");
+        return STATUS_FAIL;
+    }
+    return STATUS_SUCCESS;
 }
 
-static void cmd_ls(int argc, char* argv[]) {
+static int cmd_ls(int argc, char* argv[]) {
     char dir[512];
     NUC_DIR *dp;
     struct nuc_dirent *ep;
@@ -106,17 +113,17 @@ Options:
     if (argc == 2) { // has arguments
         if (!strcmp(argv[1], "--help")){
             print_multiline(ls_help);
-            return;
+            return STATUS_SUCCESS;
         }
         if (!resolve_path(argv[1], dir, sizeof(dir))) {
             print_line("ls: path too long");
-            return;
+            return STATUS_FAIL;
         }
     } else if (argc == 1){
         snprintf(dir, sizeof(dir), "%s", cwd);
     } else { // too many arguments
         print_multiline(ls_help);
-        return;
+        return STATUS_MISUSE;
     }
 
     dp = nuc_opendir(dir);
@@ -124,7 +131,7 @@ Options:
         char msg[600];
         snprintf(msg, sizeof(msg), "ls: cannot open %s", dir);
         print_line(msg);
-        return;
+        return STATUS_FAIL;
     }
     while ((ep = nuc_readdir(dp))) {
         char f[600];
@@ -142,9 +149,10 @@ Options:
         print_line(line);
     }
     nuc_closedir(dp);
+    return STATUS_SUCCESS;
 }
 
-static void cmd_hist(int argc, char* argv[]) {
+static int cmd_hist(int argc, char* argv[]) {
     argc++;argv++;// to bypass the annoying unused parameter warnings
     char line[COLS + 16];   /* "%d: " prefix + longest entry */
     int i;
@@ -154,9 +162,10 @@ static void cmd_hist(int argc, char* argv[]) {
     }
     snprintf(line, COLS, "len=%d browse=%d", hist_len, browse);
     print_line(line);
+    return STATUS_SUCCESS;
 }
 
-static void cmd_dbg(int argc, char* argv[]) {
+static int cmd_dbg(int argc, char* argv[]) {
     argc++;argv++;
     char t[300], line[700];
     NUC_DIR *p;
@@ -187,13 +196,15 @@ static void cmd_dbg(int argc, char* argv[]) {
         print_line(line);
         if (p) nuc_closedir(p);
     }
+    return STATUS_SUCCESS;
 }
 
 /* ---------------- file manipulation ---------------- */
 
 /* print args joined by spaces: echo hello world */
-static void cmd_echo(int argc, char* argv[]) {
+static int cmd_echo(int argc, char* argv[]) {
     char line[COLS * 4];
+    char buf[10];
     int i, l = 0;
     line[0] = '\0';
     for (i = 1; i < argc; i++) {
@@ -202,11 +213,19 @@ static void cmd_echo(int argc, char* argv[]) {
             break;
         if (i > 1)
             line[l++] = ' ';
-        memcpy(line + l, argv[i], al);
+        if (strcmp(argv[i], "$?") == 0){
+            snprintf(buf, 9, "%i", last_status);
+            al = strlen(buf);
+            if (l + al + 2 > (int)sizeof(line)) break;
+            memcpy(line + l, buf, al);
+        } else {
+            memcpy(line + l, argv[i], al);
+        }
         l += al;
     }
     line[l] = '\0';
     print_line(line);
+    return STATUS_SUCCESS;
 }
 
 /* dump the piped input, one line at a time */
@@ -234,7 +253,7 @@ static void cat_pipe(void) {
 }
 
 /* read a file through the nuc API and print it line by line */
-static void cat_file(const char *arg) {
+static int cat_file(const char *arg) {
     char target[300];
     char chunk[257];
     char line[COLS];
@@ -244,14 +263,14 @@ static void cat_file(const char *arg) {
 
     if (!resolve_path(arg, target, sizeof(target))) {
         print_line("cat: path too long");
-        return;
+        return STATUS_FAIL;
     }
     f = nuc_fopen(target, "r");
     if (!f) {
         char msg[COLS];
         snprintf(msg, sizeof(msg), "cat: cannot open %s", arg);
         print_line(msg);
-        return;
+        return STATUS_FAIL;
     }
     while ((n = nuc_fread(chunk, 1, sizeof(chunk) - 1, f)) > 0) {
         for (i = 0; i < n; i++) {
@@ -276,36 +295,49 @@ static void cat_file(const char *arg) {
         line[l] = '\0';
         print_line(line);
     }
-    if (native_file_error(f) || nuc_fclose(f) != 0)
+    if (native_file_error(f) || nuc_fclose(f) != 0){
         io_error = 1;
+        return STATUS_FAIL;
+    }
+    return STATUS_SUCCESS;
 }
 
-static void cmd_cat(int argc, char* argv[]) {
-    int i;
+static int cmd_cat(int argc, char* argv[]) {
+    int i, err;
     if (argc == 1) {                     /* no args: read the pipe */
-        if (pipe_ready)
+        if (pipe_ready){
             cat_pipe();
-        else
+            return STATUS_SUCCESS;
+        }
+        else{
             print_line("cat: no input");
-        return;
+            return STATUS_MISUSE;
+        }
     }
-    for (i = 1; i < argc; i++)
-        cat_file(argv[i]);
+    for (i = 1; i < argc; i++){
+        err = cat_file(argv[i]);
+        if (err){
+            return err;
+        }
+    }
+    return STATUS_SUCCESS;
 }
 
 /* create an empty file (or leave an existing one alone) */
-static void cmd_touch(int argc, char* argv[]) {
+static int cmd_touch(int argc, char* argv[]) {
     char target[300];
     NUC_FILE *f;
     int i;
+    int err = STATUS_SUCCESS;
 
     if (argc < 2) {
         print_line("touch: missing file name");
-        return;
+        return STATUS_MISUSE;
     }
     for (i = 1; i < argc; i++) {
         if (!resolve_path(argv[i], target, sizeof(target))) {
             print_line("touch: path too long");
+            if (err == 0) err = STATUS_FAIL;
             continue;
         }
         f = nuc_fopen(target, "a");
@@ -313,133 +345,157 @@ static void cmd_touch(int argc, char* argv[]) {
             char msg[COLS];
             snprintf(msg, sizeof(msg), "touch: cannot create %s", argv[i]);
             print_line(msg);
+            if (err == 0) err = STATUS_FAIL;
             continue;
         }
-        if (nuc_fclose(f) != 0)
+        if (nuc_fclose(f) != 0){
             io_error = 1;
+            return STATUS_FAIL;
+        }
     }
+    return err;
 }
 
-static void cmd_cp(int argc, char* argv[]) {
+static int cmd_cp(int argc, char* argv[]) {
     char src[300], dst[300], chunk[257];
     NUC_FILE *in, *out;
     size_t n;
 
     if (argc != 3) {
         print_line("usage: cp <src> <dst>");
-        return;
+        return STATUS_MISUSE;
     }
     if (!resolve_path(argv[1], src, sizeof(src)) ||
         !resolve_path(argv[2], dst, sizeof(dst))) {
         print_line("cp: path too long");
-        return;
+        return STATUS_FAIL;
     }
     if (!strcmp(src, dst)) {
         print_line("cp: source and destination are the same file");
-        return;
+        return STATUS_FAIL;
     }
 
     in = nuc_fopen(src, "r");
     if (!in) {
         print_line("cp: cannot read source");
-        return;
+        return STATUS_FAIL;
     }
     out = nuc_fopen(dst, "w");
     if (!out) {
         if (nuc_fclose(in) != 0)
             io_error = 1;
         print_line("cp: cannot write destination");
-        return;
+        return STATUS_FAIL;
     }
     while ((n = nuc_fread(chunk, 1, sizeof(chunk), in)) > 0) {
         if (nuc_fwrite(chunk, 1, n, out) != n) {
             io_error = 1;
-            break;
+            nuc_fclose(out); // we dont care if it fails since we already set the fail flags
+            nuc_fclose(in);
+            return STATUS_FAIL;
         }
     }
-    if (native_file_error(in) || nuc_fclose(in) != 0)
+    if (native_file_error(in) || nuc_fclose(in) != 0){
         io_error = 1;
-    if (nuc_fclose(out) != 0)
+        return STATUS_FAIL;
+    }
+    if (nuc_fclose(out) != 0){
         io_error = 1;
+        return STATUS_FAIL;
+    }
+    return STATUS_SUCCESS;
 }
 
 /* mkdir/rm/rmdir/mv use the legacy OS syscalls - the same family as the
  * unreliable chdir(), so they are the most likely to misbehave. */
-static void cmd_mkdir(int argc, char* argv[]) {
+static int cmd_mkdir(int argc, char* argv[]) {
     char target[300];
     if (argc != 2) {
         print_line("usage: mkdir <dir>");
-        return;
+        return STATUS_MISUSE;
     }
     if (!resolve_path(argv[1], target, sizeof(target))) {
         print_line("mkdir: path too long");
-        return;
+        return STATUS_FAIL;
     }
-    if (mkdir(target, 0777) != 0)
+    if (mkdir(target, 0777) != 0){
         print_line("mkdir: failed");
+        return STATUS_FAIL;
+    }
+    return STATUS_SUCCESS;
 }
 
-static void cmd_rm(int argc, char* argv[]) {
+static int cmd_rm(int argc, char* argv[]) {
     char target[300];
     int i;
+    int err = STATUS_SUCCESS;
     if (argc < 2) {
         print_line("usage: rm <file>");
-        return;
+        return STATUS_MISUSE;
     }
     for (i = 1; i < argc; i++) {
         if (!resolve_path(argv[i], target, sizeof(target))) {
             print_line("rm: path too long");
+            err = STATUS_FAIL;
             continue;
         }
         if (unlink(target) != 0) {
             char msg[COLS];
             snprintf(msg, sizeof(msg), "rm: cannot remove %s", argv[i]);
+            err = STATUS_FAIL;
             print_line(msg);
         }
     }
+    return err;
 }
 
-static void cmd_rmdir(int argc, char* argv[]) {
+static int cmd_rmdir(int argc, char* argv[]) {
     char target[300];
     if (argc != 2) {
         print_line("usage: rmdir <dir>");
-        return;
+        return STATUS_MISUSE;
     }
     if (!resolve_path(argv[1], target, sizeof(target))) {
         print_line("rmdir: path too long");
-        return;
+        return STATUS_FAIL;
     }
-    if (rmdir(target) != 0)
+    if (rmdir(target) != 0){
         print_line("rmdir: failed");
+        return STATUS_FAIL;
+    }
     else {
         if (is_ancestor_of(target, cwd)){
             resolve_path(strcat(target, "/../"), cwd, 300);
         }
     }
+    return STATUS_SUCCESS;
 }
 
-static void cmd_mv(int argc, char* argv[]) {
+static int cmd_mv(int argc, char* argv[]) {
     char src[300], dst[300];
     if (argc != 3) {
         print_line("usage: mv <src> <dst>");
-        return;
+        return STATUS_MISUSE;
     }
     if (!resolve_path(argv[1], src, sizeof(src)) ||
         !resolve_path(argv[2], dst, sizeof(dst))) {
         print_line("mv: path too long");
-        return;
+        return STATUS_FAIL;
     }
-    if (rename(src, dst) != 0)
+    if (rename(src, dst) != 0){
         print_line("mv: failed");
+        return STATUS_FAIL;
+    }
     else if (is_ancestor_of(src, cwd)){
         char new_cwd[300];
         strcpy(new_cwd, dst);
         strncat(new_cwd, cwd + strlen(src), 299);
         strncpy(cwd, new_cwd, 299);
     }
+    return STATUS_SUCCESS;
 }
 
-static void cmd_help(int argc, char* argv[]) {
+static int cmd_help(int argc, char* argv[]) {
     argc++;argv++;// to bypass the annoying unused parameter warnings
     print_line("builtins:");
     print_line("  cd <dir>   change directory");
@@ -461,80 +517,84 @@ static void cmd_help(int argc, char* argv[]) {
     print_line("cmd > file writes output to a file");
     print_line("cmd | cmd  pipes builtin output (e.g. ls | cat)");
     print_line("./<name> runs a .tns program");
+    return STATUS_SUCCESS;
 }
 
 /* ---------------- command dispatch ---------------- */
 
-static void dispatch(int argc, char* argv[]) {
+static int dispatch(int argc, char* argv[]) {
     if (strcmp(argv[0], "help") == 0) {
 
-        cmd_help(argc, argv);
+        return cmd_help(argc, argv);
 
     } else if (strcmp(argv[0], "clear") == 0) {
 
         n_lines = 0;
         full_redraw();
+        return STATUS_SUCCESS;
 
     } else if (strcmp(argv[0], "exit") == 0) {
 
         /* tell main() to quit */
         quitting = 1;
+        return STATUS_SIGNAL_TERMINATED;
 
     } else if (strcmp(argv[0], "pwd") == 0) {
 
-        cmd_pwd(argc, argv);
+        return cmd_pwd(argc, argv);
 
     } else if (strcmp(argv[0], "cd") == 0) {
 
-        cmd_cd(argc, argv);
+        return cmd_cd(argc, argv);
 
     } else if (strcmp(argv[0], "hist") == 0) {
 
-        cmd_hist(argc, argv);
+        return cmd_hist(argc, argv);
 
     } else if (strcmp(argv[0], "ls") == 0) {
 
-        cmd_ls(argc, argv);
+        return cmd_ls(argc, argv);
 
     } else if (strcmp(argv[0], "cat") == 0) {
 
-        cmd_cat(argc, argv);
+        return cmd_cat(argc, argv);
 
     } else if (strcmp(argv[0], "echo") == 0) {
 
-        cmd_echo(argc, argv);
+        return cmd_echo(argc, argv);
 
     } else if (strcmp(argv[0], "touch") == 0) {
 
-        cmd_touch(argc, argv);
+        return cmd_touch(argc, argv);
 
     } else if (strcmp(argv[0], "cp") == 0) {
 
-        cmd_cp(argc, argv);
+        return cmd_cp(argc, argv);
 
     } else if (strcmp(argv[0], "mv") == 0) {
 
-        cmd_mv(argc, argv);
+        return cmd_mv(argc, argv);
 
     } else if (strcmp(argv[0], "rm") == 0) {
 
-        cmd_rm(argc, argv);
+        return cmd_rm(argc, argv);
 
     } else if (strcmp(argv[0], "mkdir") == 0) {
 
-        cmd_mkdir(argc, argv);
+        return cmd_mkdir(argc, argv);
 
     } else if (strcmp(argv[0], "rmdir") == 0) {
 
-        cmd_rmdir(argc, argv);
+        return cmd_rmdir(argc, argv);
 
     } else if (strcmp(argv[0], "whoami") == 0) {
 
         print_line("root");
+        return STATUS_SUCCESS;
 
     } else if (strcmp(argv[0], "dbg") == 0) {
 
-        cmd_dbg(argc, argv);
+        return cmd_dbg(argc, argv);
 
     } else {
         char path[512];
@@ -544,29 +604,30 @@ static void dispatch(int argc, char* argv[]) {
         if (want_launch)
             name += 2;                     /* "./hello" -> "hello" */
         if (want_launch && find_program(name, path, sizeof(path)))
-            launch(path, name);
+            return launch(path, name);
         else {
             snprintf(msg, sizeof(msg), "%s: not found", argv[0]);
             print_line(msg);
+            return STATUS_CMD_NOT_FOUND;
         }
     }
 }
 
 /* Run one pipeline stage: tokenize, peel off "> file" / ">> file", dispatch.
  * Output goes wherever the caller pointed the sink. */
-static void run_segment(const char *seg) {
+static int run_segment(const char *seg) {
     char buf[64];
-    int argc = 0, i;
+    int argc = 0, err = STATUS_SUCCESS, i;
     char **argv = new char*[64];
     if (argv == NULL){
         print_line("argv allocation error. Abort.");
-        return;
+        return STATUS_FAIL;
     }
     for (i = 0; i < 64; i++){
         argv[i] = new char[64];
-        if (argv == NULL){
+        if (argv[i] == NULL){
             print_line("argument allocation error. Abort.");
-            return;
+            return STATUS_FAIL;
         }
 
     }
@@ -598,11 +659,15 @@ static void run_segment(const char *seg) {
     }
     if (redir && redir_i + 2 < argc){
         print_line("syntax error: extra redirect argument");
+        err = STATUS_MISUSE;
     }
-    if (saw_redir && !redir) {
-        print_line("syntax error: no file after >");
-    } else if (saw_redir && !redir && strcmp(argv[i], ">>") == 0) {
-        print_line("syntax error: no file after >>");
+    else if (saw_redir && !redir) {
+        if (strcmp(argv[i], ">") == 0){
+            print_line("syntax error: no file after '>'");
+        } else {
+            print_line("syntax error: no file after '>>'");
+        }
+        err = STATUS_MISUSE;
     } else if (argc > 0) {
         if (redir) {
             char target[300];
@@ -611,21 +676,25 @@ static void run_segment(const char *seg) {
             int path_ok = resolve_path(redir, target, sizeof(target));
             if (!path_ok) {
                 print_line("cannot open output: path too long");
+                err = STATUS_MISUSE;
             } else {
                 out_file = nuc_fopen(target, mode);
                 if (!out_file) {
                     print_line("cannot open output file");
+                    err = STATUS_MISUSE;
                 } else {
                     sink = SINK_FILE;
-                    dispatch(redir ? redir_i : argc, argv);
-                    if (nuc_fclose(out_file) != 0)
+                    err = dispatch(redir ? redir_i : argc, argv);
+                    if (nuc_fclose(out_file) != 0){
                         io_error = 1;
+                        err = STATUS_FAIL;
+                    }
                     out_file = prev_file;
                     sink = prev_sink;
                 }
             }
         } else {
-            dispatch(redir ? redir_i : argc, argv);
+            err = dispatch(redir ? redir_i : argc, argv);
         }
     }
 
@@ -633,14 +702,16 @@ static void run_segment(const char *seg) {
         delete[] argv[i];
     }
     delete[] argv;
+    return err;
 }
 
 /* Split the line on '|' and run each stage, handing each stage's output to
  * the next one as input.  Pipes only work between builtins: launched .tns
  * programs own the screen and have no stdin/stdout we can capture. */
-void run_command(const char *line) {
+int run_command(const char *line) {
     char seg[COLS];
     const char *p = line;
+    int err = STATUS_SUCCESS;
 
     // make sure there are no empty segments
     const char *q = line;
@@ -649,7 +720,7 @@ void run_command(const char *line) {
         int len = bar ? (int)(bar - q) : (int)strlen(q);
         if (len == 0 || is_blank_seg(q, len)) {
             print_line("syntax error: empty segment");
-            return;
+            return (strcmp(line, "") == 0) ? STATUS_SUCCESS : STATUS_MISUSE;
         }
         if (!bar) break;
         q = bar + 1;
@@ -669,15 +740,16 @@ void run_command(const char *line) {
         seg[len] = '\0';
 
         if (!bar) {
-            run_segment(seg);
+            err = run_segment(seg);
             break;
         }
 
         {   /* not the last stage: collect this stage's output */
+            // in case you are confused (i was), the curly braces are to keep prev_sink local
             int prev_sink = sink;
             sink = SINK_PIPE;
             pipe_out_len = 0;
-            run_segment(seg);
+            err = run_segment(seg);
             sink = prev_sink;
 
             memcpy(pipe_in, pipe_out, pipe_out_len);
@@ -695,5 +767,7 @@ void run_command(const char *line) {
         out_file = 0;
         print_line("tish: file I/O error");
         io_error = 0;
+        return STATUS_FAIL;
     }
+    return err;
 }

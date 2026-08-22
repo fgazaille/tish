@@ -192,7 +192,7 @@ int handleinput(void){// returns 0: no action needed, 1: quit.
             if (hist_len < 16) {hist_len++;}
         }
         browse = -1;
-        run_command(cmdline);
+        last_status = run_command(cmdline);
         if (quitting)
             return 1;
         cmdlen = 0;

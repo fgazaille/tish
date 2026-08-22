@@ -104,7 +104,8 @@ are ordered roughly by risk, not implementation convenience.
 ## P2: Reliability and Diagnostics
 
 - [ ] Add an explicit command-status path so builtin failures and pipeline
-  failures propagate instead of being represented only by printed text.
+  failures propagate instead of being represented only by printed text. NOTE: for pipelines, only last status is recorded.
+- [ ] Add opt-in pipefail flag in `include/tish.h:56`: should be available to user as set -o pipefail.
 - [ ] Add an `errno`/native-error diagnostic helper for `nuc_*` operations,
   without assuming that every direct Nucleus syscall updates newlib `errno`.
 - [ ] Add a shell diagnostic command showing the logical path, documents root,

@@ -46,6 +46,15 @@ static int   pipe_in_len = 0;
 static int   pipe_ready = 0;       /* pipe_in holds data for this stage */
 static int   io_error = 0;          /* deferred native file I/O failure */
 
+#define STATUS_SUCCESS 0
+#define STATUS_FAIL 1
+#define STATUS_MISUSE 2 // eg. invalid arguments
+#define STATUS_CMD_NOT_FOUND 127
+#define STATUS_SIGNAL_TERMINATED 128 // for when we impletemnt keyboard interrupts and stuff
+/* code 128+N command terminated by signal N
+ex. 128 + 2 = 130 for CTRL+C (CTRL+C is signal 2)*/
+static int last_status = 0;
+
 /* ---- functions shared between modules (single-TU build) ---- */
 void init_fs(void);
 int  resolve_path(const char *arg, char *out, int out_size);
@@ -57,7 +66,7 @@ void build_screen(void);
 void render(void);
 char wait_key(void);
 int  handleinput(void);
-void run_command(const char *line);
+int run_command(const char *line);
 int is_ancestor_of(const char *ancestor, const char *path);
 bool valid_path(const char* path);
 
