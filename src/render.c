@@ -1,3 +1,12 @@
+/*
+ * tish - src/render.c: contains all functions related to displaying text on the screen
+ * history/scrollback management
+ *
+ * Copyright (C) 2026 fgazaille
+ * Copyright (C) 2026 Jlmmbo
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 #include <os.h>
 #include <nspireio/nspireio.h>

@@ -1,3 +1,12 @@
+/*
+ * tish - src/cmd.cpp: contains all builtin functions and command parsing logic
+ *
+ * Copyright (C) 2026 fgazaille
+ * Copyright (C) 2026 Jlmmbo
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #include <os.h>
 #include <syscall.h>
 #include <new>

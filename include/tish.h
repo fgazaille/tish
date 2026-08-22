@@ -1,3 +1,12 @@
+/*
+ * tish - include/tish.h: contains global variable declarations/definitions
+ and function declarations.
+ *
+ * Copyright (C) 2026 fgazaille
+ * Copyright (C) 2026 Jlmmbo
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 #ifndef TISH_H
 #define TISH_H

@@ -1,3 +1,12 @@
+/*
+ * tish - src/fs.c: contains all functions related to filesystem management
+ * and path manipulation.
+ *
+ * Copyright (C) 2026 fgazaille
+ * Copyright (C) 2026 Jlmmbo
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 #include <os.h>
 #include "tish.h"

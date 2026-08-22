@@ -5,6 +5,11 @@
  * is treated as a program name: we look for "<name>.tns" and nl_exec() it.
  * This lets you "install" real CALC programs (like you do with ntop or a
  * later vim port) and launch them by typing their name.
+ *
+ * Copyright (C) 2026 fgazaille
+ * Copyright (C) 2026 Jlmmbo
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 #include <os.h>
