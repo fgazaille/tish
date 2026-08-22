@@ -3,7 +3,7 @@
 This list is based on a static review of the current native Ndless build. Items
 are ordered roughly by risk, not implementation convenience.
 
-## P0: Correctness and Safety
+## P0.1: Correctness and Safety
 
 - [x] **Fix prompt buffer overflow** in `src/render.c:92-133`.
   Reserve space for both a cursor marker and a command character before writing
@@ -26,7 +26,7 @@ are ordered roughly by risk, not implementation convenience.
   `src/cmd.cpp:354-363`, and `src/render.c:15-20`. Report short writes, read
   failures, close failures, and partial copies instead of reporting success.
 
-## P1: Shell Behavior
+## P1.1: Shell Behavior
 
 - [x] **Report `nl_exec()` failures** in `src/cmd.cpp:54-56`. Keep the redraw
   after launch, but show an error when a matching `.tns` file is malformed,
@@ -55,7 +55,7 @@ are ordered roughly by risk, not implementation convenience.
   recompute `cwd` after a successful mutation. Currently `pwd` can continue to
   show a directory that no longer exists.
 
-## P1: Input Mapping
+## P1.2: Input Mapping
 
 - [x] **Separate printable keys from editor events** in `src/input.c`.
   Every printable key owns its character; only editing actions (backspace,
@@ -67,7 +67,7 @@ are ordered roughly by risk, not implementation convenience.
 - [x] Add tests or a diagnostics mode that prints the raw logical event for
   every supported keypad and touchpad key.
 
-## P1: Build and Structure
+## P1.3: Build and Structure
 
 - [x] **Track text-included source/header dependencies** in `Makefile`.
   `src/tish.cpp` includes `fs.c`, `render.c`, `cmd.cpp`, and `input.c`, but the
@@ -85,7 +85,7 @@ are ordered roughly by risk, not implementation convenience.
 - [x] Handle command-token allocation failure in `src/cmd.cpp:560-583`, or
   remove the heap allocation entirely.
 
-## P2: Performance and Memory
+## P2.1: Performance and Memory
 
 - [x] **Avoid unconditional full VRAM commits** in `src/render.c:69-85`.
   Track whether any cell changed and skip `nio_vram_draw()` when there is no
@@ -101,9 +101,9 @@ are ordered roughly by risk, not implementation convenience.
 - [ ] Keep using `idle()` in polling loops. Do not replace it with a busy loop;
   the current Ndless wait strategy is appropriate for power usage.
 
-## P2: Reliability and Diagnostics
+## P2.2: Reliability and Diagnostics
 
-- [ ] Add an explicit command-status path so builtin failures and pipeline
+- [x] Add an explicit command-status path so builtin failures and pipeline
   failures propagate instead of being represented only by printed text. NOTE: for pipelines, only last status is recorded.
 - [ ] Add opt-in pipefail flag in `include/tish.h:56`: should be available to user as set -o pipefail.
 - [x] Add an `errno`/native-error diagnostic helper for `nuc_*` operations,
