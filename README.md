@@ -110,9 +110,7 @@ top-level sources only (nested app projects build on their own).
 3. Exit tish with `exit` (or esc).
 
 Note: touchpad arrow keys need a recent Firebird build (the distro 1.6-1
-package has a dead CX II touchpad — fixed upstream in master, PR #378). The
-physical eEXP/TENX keys are temporary left/right navigation fallbacks for
-debugging.
+package has a dead CX II touchpad — fixed upstream in master, PR #378).
 
 ## Structure
 

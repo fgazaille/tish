@@ -24,15 +24,14 @@ static const KeyDef keys[] = {
     {KEY_NSPIRE_MULTIPLY, '*'}, {KEY_NSPIRE_EE, '&'},
     {KEY_NSPIRE_GTHAN, '>'},   {KEY_NSPIRE_BAR, '|'},
     {KEY_NSPIRE_CAT, '\x1c'},
-    {KEY_NSPIRE_eEXP, '\x12'}, {KEY_NSPIRE_TENX, '\x13'},
     {KEY_NSPIRE_UP, '\x10'},   {KEY_NSPIRE_DOWN, '\x11'}, {KEY_NSPIRE_LEFT, '\x12'},
     {KEY_NSPIRE_RIGHT, '\x13'},{KEY_NSPIRE_DEL, '\b'},    {KEY_NSPIRE_ESC, '\x1b'},
     {KEY_NSPIRE_RET, '\n'},    {KEY_NSPIRE_ENTER, '\n'}
 };
 
-/* Shifted symbols, PC-keyboard style.  ">" has no key of its own on touchpad
- * models (KEY_NSPIRE_GTHAN only exists on the clickpad), so shift+"." types it
- * and redirection stays usable on a CX II. */
+/* Shifted symbols, PC-keyboard style.  Touchpad keypads have no `>` key of
+ * their own (GTHAN only exists on clickpads), so shift+"." types it and
+ * redirection stays usable on a CX II. */
 static const KeyDef shift_keys[] = {
     {KEY_NSPIRE_PERIOD, '>'},
     {KEY_NSPIRE_DIVIDE, '|'},

@@ -57,10 +57,10 @@ are ordered roughly by risk, not implementation convenience.
 
 ## P1: Input Mapping
 
-- [ ] **Separate printable keys from editor events** in `src/input.c:22-31`.
-  The sentinel values used for history and cursor movement collide with
-  `eEXP` and `10^x`; those two remain temporary navigation fallbacks for
-  debugging.
+- [x] **Separate printable keys from editor events** in `src/input.c`.
+  Every printable key owns its character; only editing actions (backspace,
+  enter, esc, history and cursor movement) use control codes, with no
+  collisions between the two.
 - [x] **Correct clickpad operator mappings** in `src/input.c:22-27`.
   Use `KEY_NSPIRE_GTHAN` and `KEY_NSPIRE_BAR` for the physical `>` and `|`
   keys. `KEY_NSPIRE_MULTIPLY` and `KEY_NSPIRE_EE` now map to `*` and `&`.
