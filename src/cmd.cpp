@@ -639,14 +639,13 @@ static int run_segment(const char *seg) {
         if (!argv[i]) {
             print_line("argument allocation error. Abort.");
             alloc_ok = 0;
-            return STATUS_FAIL;
         }
     }
     if (!alloc_ok) {
         for (i = 0; i < 64; i++)
             delete[] argv[i];
         delete[] argv;
-        return;
+        return STATUS_FAIL;
     }
     char* token;
     const char *redir = 0;
@@ -674,7 +673,6 @@ static int run_segment(const char *seg) {
             break;
         }
     }
-    int syntax_error = 0;
     if (redir && redir_i + 2 < argc) {
         print_line("syntax error: extra redirect argument");
         err = STATUS_MISUSE;
