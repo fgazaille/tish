@@ -22,10 +22,12 @@ void print_line(const char *line) {
 
     if (sink == SINK_PIPE) {
         int l = strlen(line);
-        if (pipe_out_len + l + 1 < PIPE_CAP) {  /* silently drop on overflow */
+        if (pipe_out_len + l + 1 < PIPE_CAP) {
             memcpy(pipe_out + pipe_out_len, line, l);
             pipe_out_len += l;
             pipe_out[pipe_out_len++] = '\n';
+        } else {
+            pipe_overflow = 1;     /* drop the line, report after the pipeline */
         }
         return;
     }
@@ -69,6 +71,7 @@ static void set_row(int y, const char *s) {
 void render(void) {
     nio_console *csl = nio_get_default();
     int y, x;
+    int changed = force_full_redraw;   /* stale prev[]: assume a blit is due */
     for (y = 0; y < ROWS; y++)
         for (x = 0; x < COLS; x++) {
             if (!force_full_redraw && scr[y][x] == prev[y][x])
@@ -76,9 +79,11 @@ void render(void) {
             nio_csl_savechar(csl, scr[y][x], x, y);
             nio_vram_csl_drawchar(csl, x, y);
             prev[y][x] = scr[y][x];
+            changed = 1;
         }
     force_full_redraw = 0;
-    nio_vram_draw();
+    if (changed)
+        nio_vram_draw();               /* full-screen blit: skip if untouched */
 }
 
 /* after a launched program exits, our prev[] no longer matches the screen */
@@ -91,6 +96,7 @@ void full_redraw(void) {
 /* rows 0..27 = scrollback window, row 28 = prompt, row 29 = status bar */
 char* build_prompt(char *out, int out_size) {
     //snprintf(out, out_size, "%.*s", out_size - 1, cwd);   // show cwd, e.g. "/"
+    /* precision reserves room for "user@tinspire:" + "$ " + NUL */
     snprintf(out, out_size, "user@tinspire:%.*s$ ", out_size - 17, cwd);
     return out;
 }
@@ -107,7 +113,6 @@ void build_screen(void) {
 
     build_prompt(prompt, sizeof(prompt));
     x = 0;
-
 
     for (i = 0; prompt[i] && x < COLS - 4; i++)
         line[x++] = prompt[i];

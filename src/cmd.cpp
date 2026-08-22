@@ -1,5 +1,6 @@
 #include <os.h>
 #include <syscall.h>
+#include <new>
 #include "tish.h"
 
 static int native_file_error(NUC_FILE *file) {
@@ -22,11 +23,15 @@ static int is_blank_seg(const char *s, int len) {
 /* look for "<name>.tns" in the current dir, then the documents root. */
 static int find_program(const char *name, char *path_buf, int buf_size) {
     const char *roots[2];
-    int r;
+    char want[80];
+    int r, nr = 2;
     roots[0] = cwd;
     roots[1] = docs;
-    for (r = 0; r < 2; r++) {
-        char want[80];
+    if (!strcmp(roots[0], roots[1]))
+        nr = 1;                        /* cwd already is docs: scan it once */
+    if (strlen(name) + sizeof(".tns") > sizeof(want))
+        return 0;                  /* name too long to ever match a program */
+    for (r = 0; r < nr; r++) {
         NUC_DIR *dp;
         struct nuc_dirent *ep;
         snprintf(want, sizeof(want), "%s.tns", name);
@@ -464,8 +469,12 @@ static int cmd_rmdir(int argc, char* argv[]) {
         return STATUS_FAIL;
     }
     else {
-        if (is_ancestor_of(target, cwd)){
-            resolve_path(strcat(target, "/../"), cwd, 300);
+        /* cwd inside the removed dir: climb one level logically */
+        size_t tl = strlen(target);
+        if (is_ancestor_of(target, cwd) &&
+            tl + sizeof("/../") <= sizeof(target)) {
+            memcpy(target + tl, "/../", sizeof("/../"));
+            resolve_path(target, cwd, sizeof(cwd));
         }
     }
     return STATUS_SUCCESS;
@@ -488,9 +497,8 @@ static int cmd_mv(int argc, char* argv[]) {
     }
     else if (is_ancestor_of(src, cwd)){
         char new_cwd[300];
-        strcpy(new_cwd, dst);
-        strncat(new_cwd, cwd + strlen(src), 299);
-        strncpy(cwd, new_cwd, 299);
+        snprintf(new_cwd, sizeof(new_cwd), "%s%s", dst, cwd + strlen(src));
+        snprintf(cwd, sizeof(cwd), "%s", new_cwd);
     }
     return STATUS_SUCCESS;
 }
@@ -618,18 +626,27 @@ static int dispatch(int argc, char* argv[]) {
 static int run_segment(const char *seg) {
     char buf[64];
     int argc = 0, err = STATUS_SUCCESS, i;
-    char **argv = new char*[64];
-    if (argv == NULL){
+    /* value-initialized so every slot starts NULL: delete[] on a null
+     * pointer is a no-op, keeping the cleanup below safe on partial failure */
+    char **argv = new (std::nothrow) char*[64]();
+    if (!argv) {
         print_line("argv allocation error. Abort.");
         return STATUS_FAIL;
     }
-    for (i = 0; i < 64; i++){
-        argv[i] = new char[64];
-        if (argv[i] == NULL){
+    int alloc_ok = 1;
+    for (i = 0; i < 64 && alloc_ok; i++){
+        argv[i] = new (std::nothrow) char[64];
+        if (!argv[i]) {
             print_line("argument allocation error. Abort.");
+            alloc_ok = 0;
             return STATUS_FAIL;
         }
-
+    }
+    if (!alloc_ok) {
+        for (i = 0; i < 64; i++)
+            delete[] argv[i];
+        delete[] argv;
+        return;
     }
     char* token;
     const char *redir = 0;
@@ -657,7 +674,8 @@ static int run_segment(const char *seg) {
             break;
         }
     }
-    if (redir && redir_i + 2 < argc){
+    int syntax_error = 0;
+    if (redir && redir_i + 2 < argc) {
         print_line("syntax error: extra redirect argument");
         err = STATUS_MISUSE;
     }
@@ -729,6 +747,7 @@ int run_command(const char *line) {
     pipe_in_len = 0;
     pipe_out_len = 0;
     pipe_ready = 0;
+    pipe_overflow = 0;
     io_error = 0;
 
     while (1) {
@@ -762,6 +781,10 @@ int run_command(const char *line) {
 
     pipe_ready = 0;
     pipe_in_len = 0;
+    if (pipe_overflow) {
+        print_line("pipe: output too large");
+        pipe_overflow = 0;
+    }
     if (io_error) {
         sink = SINK_SCREEN;
         out_file = 0;

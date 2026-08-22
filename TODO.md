@@ -5,7 +5,7 @@ are ordered roughly by risk, not implementation convenience.
 
 ## P0: Correctness and Safety
 
-- [x] **Fix prompt buffer overflow** in `src/render.c:112-127`.
+- [x] **Fix prompt buffer overflow** in `src/render.c:92-133`.
   Reserve space for both a cursor marker and a command character before writing
   either one. A long command with the cursor near the end can write past the
   `line[COLS]` stack buffer.
@@ -31,17 +31,17 @@ are ordered roughly by risk, not implementation convenience.
 - [x] **Report `nl_exec()` failures** in `src/cmd.cpp:54-56`. Keep the redraw
   after launch, but show an error when a matching `.tns` file is malformed,
   unsupported, or rejected by the loader.
-- [x] **Reject empty pipeline stages** in `src/cmd.cpp:624-635`. Commands such
+- [x] **Reject empty pipeline stages** in `src/cmd.cpp:662-673`. Commands such
   as `echo hello |`, `| cat`, and `echo hello || cat` should produce syntax
   errors before executing earlier stages.
-- [x] **Validate redirection arity** in `src/cmd.cpp:567-584`. Reject missing
+- [x] **Validate redirection arity** in `src/cmd.cpp:588-612`. Reject missing
   filenames and extra tokens, for example `echo hi > first extra` and
   `echo hi > first > second`, instead of silently ignoring tokens.
-- [ ] **Detect pipe overflow** in `src/render.c:23-31`. The current 4 KB pipe
-  buffer silently drops output after it fills. Add an overflow flag and report
-  `pipe: output too large`, or replace the buffer with a streaming design.
+- [x] **Detect pipe overflow** in `src/render.c:23-35`. The 4 KB pipe
+  buffer no longer drops output silently: an overflow flag makes the pipeline
+  report `pipe: output too large` when it finishes.
 - [ ] **Reject or clearly report unsupported native-program piping and
-  redirection** in `src/cmd.cpp:527-540` and `src/cmd.cpp:545-615`. A launched
+  redirection** in `src/cmd.cpp:525-538` and `src/cmd.cpp:557-650`. A launched
   `.tns` program owns the screen and does not use Tish's output sink; only the
   shell's `running ...` message is redirected or piped.
 - [ ] **Decide how child programs inherit the working directory**. Tish tracks
@@ -51,16 +51,16 @@ are ordered roughly by risk, not implementation convenience.
   preserve the limitation, pass the logical directory explicitly, or establish
   the native directory after verifying Ndless `chdir()` behavior.
 - [x] **Protect the logical working directory from mutations** in
-  `src/cmd.cpp:65-89`. Reject removing/renaming `cwd` or an ancestor, or
+  `src/cmd.cpp:402-444`. Reject removing/renaming `cwd` or an ancestor, or
   recompute `cwd` after a successful mutation. Currently `pwd` can continue to
   show a directory that no longer exists.
 
 ## P1: Input Mapping
 
-- [ ] **Separate printable keys from editor events** in `src/input.c:40-56`.
-  The sentinel values used for history and cursor movement collide with
-  `eEXP` and `10^x`; those two remain temporary navigation fallbacks for
-  debugging.
+- [x] **Separate printable keys from editor events** in `src/input.c`.
+  Every printable key owns its character; only editing actions (backspace,
+  enter, esc, history and cursor movement) use control codes, with no
+  collisions between the two.
 - [x] **Correct clickpad operator mappings** in `src/input.c:22-27`.
   Use `KEY_NSPIRE_GTHAN` and `KEY_NSPIRE_BAR` for the physical `>` and `|`
   keys. `KEY_NSPIRE_MULTIPLY` and `KEY_NSPIRE_EE` now map to `*` and `&`.
@@ -70,7 +70,7 @@ are ordered roughly by risk, not implementation convenience.
 ## P1: Build and Structure
 
 - [x] **Track text-included source/header dependencies** in `Makefile`.
-  `src/tish.c` includes `fs.c`, `render.c`, `cmd.cpp`, and `input.c`, but the
+  `src/tish.cpp` includes `fs.c`, `render.c`, `cmd.cpp`, and `input.c`, but the
   Makefile only tracks `src/tish.c` for `src/tish.o`. Add `-MMD -MP` dependency
   generation or explicit prerequisites so editing an included file rebuilds
   the binary.
@@ -82,21 +82,21 @@ are ordered roughly by risk, not implementation convenience.
 - [ ] Move application-wide state out of `static` definitions in
   `include/tish.h` before introducing separate translation units. Use one
   definition in a source file and `extern` declarations in the header.
-- [x] Handle command-token allocation failure in `src/cmd.cpp:546-551`, or
+- [x] Handle command-token allocation failure in `src/cmd.cpp:560-583`, or
   remove the heap allocation entirely.
 
 ## P2: Performance and Memory
 
-- [ ] **Avoid unconditional full VRAM commits** in `src/render.c:69-82`.
+- [x] **Avoid unconditional full VRAM commits** in `src/render.c:69-85`.
   Track whether any cell changed and skip `nio_vram_draw()` when there is no
   visual update.
 - [ ] Track dirty rows or regions. `build_screen()` reconstructs all scrollback
   rows on every input event even when only the prompt row changed.
 - [ ] Replace the per-command allocation of 64 separate 64-byte strings in
-  `src/cmd.cpp:546-551` with one bounded token buffer plus an array of pointers.
+  `src/cmd.cpp:560-583` with one bounded token buffer plus an array of pointers.
 - [ ] Increase the file-copy buffer from 256 bytes to a modest 1-4 KiB buffer,
   subject to stack and heap measurements on the calculator.
-- [ ] Avoid scanning `docs` twice in `find_program()` when `cwd` already equals
+- [x] Avoid scanning `docs` twice in `find_program()` when `cwd` already equals
   `docs`.
 - [ ] Keep using `idle()` in polling loops. Do not replace it with a busy loop;
   the current Ndless wait strategy is appropriate for power usage.
@@ -104,10 +104,11 @@ are ordered roughly by risk, not implementation convenience.
 ## P2: Reliability and Diagnostics
 
 - [ ] Add an explicit command-status path so builtin failures and pipeline
-  failures propagate instead of being represented only by printed text. NOTE: for pipelines, only last status is recorded.
-- [ ] Add opt-in pipefail flag in `include/tish.h:56`: should be available to user as set -o pipefail.
+  failures propagate instead of being represented only by printed text.
 - [ ] Add an `errno`/native-error diagnostic helper for `nuc_*` operations,
   without assuming that every direct Nucleus syscall updates newlib `errno`.
+  (`native_file_error()` in `src/cmd.cpp:6-10` polls the OS `ferror` syscall;
+  wired into cat/cp and the file sink. Legacy mkdir/rm/rmdir/mv stay opaque.)
 - [ ] Add a shell diagnostic command showing the logical path, documents root,
   Ndless revision, OS ID, hardware type/subtype, and LCD type.
 - [ ] Verify Nspire I/O console ownership across `nl_exec()`. `render()` assumes
@@ -120,13 +121,19 @@ are ordered roughly by risk, not implementation convenience.
 
 ## Validation checklist
 
-- [ ] Build from a clean checkout with the Ndless cross-toolchain.
-- [ ] Run `nspire-g++ -Wall -Wextra -marm -Iinclude -fsyntax-only src/tish.c`.
-- [ ] Test the P0 fixes on Firebird and a physical CX II calculator.
+- [x] Build from a clean checkout with the Ndless cross-toolchain.
+- [x] Run `nspire-g++ -Wall -Wextra -marm -Iinclude -fsyntax-only src/tish.cpp`.
+- [x] Test the recent fixes on a physical CX II calculator (cat picker grid +
+      ragged-row navigation, redirect syntax errors, pipe empty-stage
+      rejection, overflow report, hist output, rmdir/mv cwd recompute,
+      launches, render sanity — 2026-08-21 session; Firebird untested).
 - [ ] Test clickpad and touchpad input mappings separately.
-- [ ] Test launch success, launch failure, screen restoration, and child path
-  behavior.
-- [ ] Run `genzehn --info` on the generated Zehn output.
-- [ ] Verify that editing every text-included source and header causes a rebuild.
+- [x] Test launch success, launch failure, screen restoration, and child path
+  behavior (`./prog` run/return/redraw and not-found verified on device;
+  nested-relative child cwd remains untested by design, see the inheritance
+  decision above).
+- [x] Run `genzehn --info` on the generated Zehn output.
+- [x] Verify that editing every text-included source and header causes a rebuild
+  (`touch include/tish.h && make` recompiles; second `make` is a no-op).
 - [ ] Measure render time, VRAM commits, heap use, and maximum stack use before
   and after optimization changes.

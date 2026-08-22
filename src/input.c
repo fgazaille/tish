@@ -24,15 +24,14 @@ static const KeyDef keys[] = {
     {KEY_NSPIRE_MULTIPLY, '*'}, {KEY_NSPIRE_EE, '&'},
     {KEY_NSPIRE_GTHAN, '>'},   {KEY_NSPIRE_BAR, '|'},
     {KEY_NSPIRE_CAT, '\x1c'},
-    {KEY_NSPIRE_eEXP, '\x12'}, {KEY_NSPIRE_TENX, '\x13'},
     {KEY_NSPIRE_UP, '\x10'},   {KEY_NSPIRE_DOWN, '\x11'}, {KEY_NSPIRE_LEFT, '\x12'},
     {KEY_NSPIRE_RIGHT, '\x13'},{KEY_NSPIRE_DEL, '\b'},    {KEY_NSPIRE_ESC, '\x1b'},
     {KEY_NSPIRE_RET, '\n'},    {KEY_NSPIRE_ENTER, '\n'}
 };
 
-/* Shifted symbols, PC-keyboard style.  ">" has no key of its own on touchpad
- * models (KEY_NSPIRE_GTHAN only exists on the clickpad), so shift+"." types it
- * and redirection stays usable on a CX II. */
+/* Shifted symbols, PC-keyboard style.  Touchpad keypads have no `>` key of
+ * their own (GTHAN only exists on clickpads), so shift+"." types it and
+ * redirection stays usable on a CX II. */
 static const KeyDef shift_keys[] = {
     {KEY_NSPIRE_PERIOD, '>'},
     {KEY_NSPIRE_DIVIDE, '|'},
@@ -77,14 +76,14 @@ static const char cat_chars[] =
 :;<=>?@[\\]^_`{|\
 }~";
 
-/* overlays the bottom of the screen: rows 26-27 show the chars, row 28 a
+/* overlays the bottom of the screen: rows 25-27 show the chars, row 28 a
  * hint.  build_screen() redraws over it once the picker closes. */
 static void draw_cat_menu(int sel) {
     int row, i;
     for (row = 0; row < CAT_ROWS; row++) {
         char line[COLS];
         int x = 0;
-        for (i = 0; i < CAT_PER_ROW; i++) {
+        for (i = 0; i < CAT_PER_ROW && row * CAT_PER_ROW + i < (int)CAT_N; i++) {
             int idx = row * CAT_PER_ROW + i;
             int here = (idx == sel);
             line[x++] = here ? '[' : ' ';
@@ -95,6 +94,24 @@ static void draw_cat_menu(int sel) {
         set_row(28 - CAT_ROWS + row, line);
     }
     set_row(28, "arrows: move | enter: use | esc: cancel");
+}
+
+/* number of filled cells in a picker row (the last row can be short) */
+static int cat_row_len(int row) {
+    int len = (int)CAT_N - row * CAT_PER_ROW;
+    return len > CAT_PER_ROW ? CAT_PER_ROW : len;
+}
+
+/* move sel up/down one picker row, keeping the column when the target row
+ * is full-length and clamping to its last cell when it is the short one.
+ * A fixed ±CAT_PER_ROW stride would drift across the ragged edge. */
+static int cat_move(int sel, int drow) {
+    int col = sel % CAT_PER_ROW;
+    int nrow = (sel / CAT_PER_ROW + drow + CAT_ROWS) % CAT_ROWS;
+    int len = cat_row_len(nrow);
+    if (col >= len)
+        col = len - 1;
+    return nrow * CAT_PER_ROW + col;
 }
 
 /* opens the picker; returns 1 with the chosen char in *out, or 0 on esc. */
@@ -110,9 +127,9 @@ static int cat_menu(char *out) {
         else if (isKeyPressed(KEY_NSPIRE_RIGHT) || isKeyPressed(KEY_NSPIRE_TAB))
             sel = (sel + 1) % CAT_N;
         else if (isKeyPressed(KEY_NSPIRE_DOWN))
-            sel = (sel + CAT_PER_ROW) % CAT_N;
+            sel = cat_move(sel, 1);
         else if (isKeyPressed(KEY_NSPIRE_UP))
-            sel = (sel + CAT_N - CAT_PER_ROW) % CAT_N;
+            sel = cat_move(sel, -1);
         else if (isKeyPressed(KEY_NSPIRE_RET) || isKeyPressed(KEY_NSPIRE_ENTER) ||
                  isKeyPressed(KEY_NSPIRE_CLICK)) {
             *out = cat_chars[sel];

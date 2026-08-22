@@ -44,6 +44,7 @@ static int   pipe_out_len = 0;
 static char  pipe_in[PIPE_CAP];    /* input handed down from the last stage */
 static int   pipe_in_len = 0;
 static int   pipe_ready = 0;       /* pipe_in holds data for this stage */
+static int   pipe_overflow = 0;    /* a stage exceeded PIPE_CAP: output dropped */
 static int   io_error = 0;          /* deferred native file I/O failure */
 
 #define STATUS_SUCCESS 0
